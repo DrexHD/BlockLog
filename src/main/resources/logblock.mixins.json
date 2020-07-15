@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "me.drex.logblock.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "CommandManagerMixin",
+    "RconCommandOutputMixin",
+    "ServerPlayerInteractionManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

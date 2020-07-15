@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "logblock",
+  "version": "${version}",
+
+  "name": "LogBlock",
+  "description": "A mod which logs ores mined",
+  "authors": [
+    "DrexHD"
+  ],
+  "contact": {
+    "homepage": "https://50kilo.org",
+    "sources": "https://github.com/DrexHD/Fabric-Votifier"
+  },
+
+  "license": "CC0-1.0",
+
+  "environment": "*",
+  "entrypoints": {
+    "server": [
+      "me.drex.logblock.LogBlockMod"
+    ]
+  },
+  "mixins": [
+    "logblock.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.7.4"
+  }
+}
