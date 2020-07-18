@@ -18,25 +18,37 @@ public class DBConnection {
         Statement stmt = connection.createStatement();
         String history = "CREATE TABLE IF NOT EXISTS history (\n"
                 + "	id INTEGER PRIMARY KEY,\n"
-                + "	entityID text NOT NULL,\n"
-                + "	x int NOT NULL,\n"
-                + "	y int NOT NULL,\n"
-                + "	z int NOT NULL,\n"
-                + "	dimension text NOT NULL,\n"
-                + "	block text NOT NULL,\n"
-                + "	time long NOT NULL,\n"
-                + "	placed boolean NOT NULL,\n"
-                + "	undone boolean NOT NULL\n"
+                + "	entityid INTEGER NOT NULL,\n"
+                + "	x INTEGER NOT NULL,\n"
+                + "	y INTEGER NOT NULL,\n"
+                + "	z INTEGER NOT NULL,\n"
+                + "	dimensionid INTEGER NOT NULL,\n"
+                + "	blockid INTEGER NOT NULL,\n"
+                + "	pblockid INTEGER NOT NULL,\n"
+                + "	time LONG NOT NULL,\n"
+                + "	placed BOOLEAN NOT NULL,\n"
+                + "	undone BOOLEAN NOT NULL\n"
                 + ");";
 
         String entities = "CREATE TABLE IF NOT EXISTS entities (\n"
-                + "	entityID INTEGER PRIMARY KEY,\n"
-                + "	ueid text NOT NULL,\n" //Unique Entity ID
-                + "	name text NOT NULL\n"
+                + "	id INTEGER PRIMARY KEY,\n"
+                + "	value text NOT NULL\n"
+                + ");";
+
+        String blocks = "CREATE TABLE IF NOT EXISTS blocks (\n"
+                + "	id INTEGER PRIMARY KEY,\n"
+                + "	value text NOT NULL\n"
+                + ");";
+
+        String dimensions = "CREATE TABLE IF NOT EXISTS dimensions (\n"
+                + "	id INTEGER PRIMARY KEY,\n"
+                + "	value text NOT NULL\n"
                 + ");";
 
         stmt.execute(history);
         stmt.execute(entities);
+        stmt.execute(blocks);
+        stmt.execute(dimensions);
     }
 
     public java.sql.Connection get() {

@@ -1,5 +1,6 @@
 package me.drex.logblock;
 
+import me.drex.logblock.database.DBCache;
 import me.drex.logblock.database.DBConnection;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.minecraft.server.MinecraftServer;
@@ -18,6 +19,7 @@ public class LogBlockMod implements DedicatedServerModInitializer {
     private static final Path path = new File(System.getProperty("user.dir")).toPath().resolve("config");
     public static MinecraftServer server;
     public static DBConnection dbConnection;
+    private static DBCache dbCache;
 
     @Override
     public void onInitializeServer() {
@@ -26,7 +28,13 @@ public class LogBlockMod implements DedicatedServerModInitializer {
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
+        try {
+            dbCache = new DBCache(dbConnection.get());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         INSTANCE = this;
+//        DBUtil.start();
     }
 
     public static Path getPath() {
@@ -44,5 +52,7 @@ public class LogBlockMod implements DedicatedServerModInitializer {
     public static Connection getConnection() {
         return dbConnection.get();
     }
+
+    public static DBCache getCache()  { return dbCache; }
 
 }

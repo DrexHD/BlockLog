@@ -1,10 +1,10 @@
 package me.drex.logblock.mixin;
 
-import com.mojang.authlib.GameProfile;
-import me.drex.logblock.database.DBUtil;
+import me.drex.logblock.LogBlockMod;
 import me.drex.logblock.util.BlockUtil;
 import me.drex.logblock.util.ItemUtil;
 import net.minecraft.block.Block;
+import net.minecraft.block.FlowerBlock;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -35,7 +35,6 @@ public class ServerPlayerInteractionManagerMixin {
     public ServerWorld world;
 
     public Block block;
-    public BlockPos blockPos;
 
 
     @Inject(method = "processBlockBreakingAction", at = @At(value = "HEAD"))
@@ -45,22 +44,31 @@ public class ServerPlayerInteractionManagerMixin {
 
     @Inject(method = "finishMining", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerPlayNetworkHandler;sendPacket(Lnet/minecraft/network/Packet;)V"))
     private void remove(BlockPos pos, PlayerActionC2SPacket.Action action, String reason, CallbackInfo ci) {
-        GameProfile profile = this.player.getGameProfile();
-        DBUtil.createEntry(profile.getName(), profile.getId(), pos, this.world.getDimension(), BlockUtil.toName(block), false);
+        LogBlockMod.getCache().addEntry(this.player.getUuid().toString(), pos, this.world.getDimension(), "minecraft:air", BlockUtil.toName(block), false);
     }
 
-    @Inject(method = "interactBlock", at = @At(value = "HEAD"))
-    private void getBlockPos(ServerPlayerEntity serverPlayerEntity, World world, ItemStack stack, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
-        blockPos = hitResult.getBlockPos().offset(hitResult.getSide());
-    }
 
     @Inject(method = "interactBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;isEmpty()Z", ordinal = 2))
     private void place(ServerPlayerEntity player, World world, ItemStack stack, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
         Item item = stack.getItem();
         if (item instanceof BlockItem) {
-            GameProfile profile = this.player.getGameProfile();
-            DBUtil.createEntry(profile.getName(), profile.getId(), hitResult.getBlockPos().offset(hitResult.getSide()), this.world.getDimension(), ItemUtil.toName(item), true);
+            BlockPos hitPos = hitResult.getBlockPos();
+            Block block = this.world.getBlockState(hitPos).getBlock();
+            BlockPos pos = hitPos;
+            if (!block.canMobSpawnInside() || block instanceof FlowerBlock) {
+                pos = pos.offset(hitResult.getSide());
+            }
+            LogBlockMod.getCache().addEntry(this.player.getUuid().toString(), pos, this.world.getDimension(), ItemUtil.toName(item), BlockUtil.toName(this.world.getBlockState(pos).getBlock()), true);
         }
     }
+
+/*    @Inject(method = "interactBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;isEmpty()Z", ordinal = 2))
+    private void onplace(ServerPlayerEntity player, World world, ItemStack stack, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
+        Item item = stack.getItem();
+        if (item instanceof BlockItem) {
+            GameProfile profile = this.player.getGameProfile();
+            DBUtil.createEntryAsync(profile.getName(), profile.getId(), hitResult.getBlockPos().offset(hitResult.getSide()), this.world.getDimension(), ItemUtil.toName(item), true);
+        }
+    }*/
 
 }

@@ -4,7 +4,9 @@
   "package": "me.drex.logblock.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "AbstractBlockMixin",
     "CommandManagerMixin",
+    "ExplosionMixin",
     "RconCommandOutputMixin",
     "ServerPlayerInteractionManagerMixin"
   ],

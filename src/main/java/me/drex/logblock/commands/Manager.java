@@ -19,6 +19,7 @@ public class Manager {
 
     public static void register(LiteralArgumentBuilder<ServerCommandSource> command, CommandDispatcher dispatcher) {
         UndoCommand.register(command);
+        LookupCommand.register(command);
     }
 
 }
