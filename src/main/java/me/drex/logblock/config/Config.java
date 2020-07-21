@@ -6,13 +6,11 @@ import ninja.leaping.configurate.objectmapping.serialize.ConfigSerializable;
 @ConfigSerializable
 public class Config {
 
-    public static final String HEADER = "XRAY! Configuration File\n" +
+    public static final String HEADER = "LogBlockMod Configuration File\n" +
             "Licensed Under the MIT License, Copyright (c) 2020\n" +
-            "Votifier is using HOCON for its configuration files\n learn more about it here: " +
+            "LogBlockMod is using HOCON for its configuration files\n learn more about it here: " +
             "https://docs.spongepowered.org/stable/en/server/getting-started/configuration/hocon.html";
 
-    @Setting(value = "enabled")
-    public boolean enabled = true;
 
     @Setting(value = "databaseUser", comment = "Make sure to change this!")
     public String databaseUser = "admin";
@@ -21,7 +19,10 @@ public class Config {
     public String databasePassword = "admin";
 
     @Setting(value = "database")
-    public String database = "jdbc:mysql://localhost:3306/antixray";
+    public String database = "antixray";
+
+    @Setting(value = "permissionManager", comment = "Values: luckperms, vanilla")
+    public String permissionManager = "luckperms";
 
 
 }

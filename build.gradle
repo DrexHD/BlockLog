@@ -34,6 +34,12 @@ dependencies {
     include group: 'mysql', name: 'mysql-connector-java', version: '5.1.13'
     compile group: 'mysql', name: 'mysql-connector-java', version: '5.1.13'
 
+//    include group:'org.xerial', name:'sqlite-jdbc', version:'3.8.11.2'
+//    compile group:'org.xerial', name:'sqlite-jdbc', version:'3.8.11.2'
+
+    implementation "net.luckperms:api:${project.luckperms_version}"
+
+
     // PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.
     // You may need to force-disable transitiveness on them.
 

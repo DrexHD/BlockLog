@@ -1,6 +1,6 @@
 package me.drex.logblock.mixin;
 
-import me.drex.logblock.LogBlockMod;
+import me.drex.logblock.BlockLog;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.rcon.RconCommandOutput;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,6 +13,6 @@ public class RconCommandOutputMixin {
     @Inject(method = "<init>", at = @At("RETURN"))
     private void saveInstance(MinecraftServer server, CallbackInfo ci) {
 
-        LogBlockMod.server = server;
+        BlockLog.server = server;
     }
 }

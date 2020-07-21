@@ -4,11 +4,14 @@
   "package": "me.drex.logblock.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "AbstractBlockMixin",
+    "BlockItemMixin",
     "CommandManagerMixin",
     "ExplosionMixin",
+    "LeavesBlockMixin",
     "RconCommandOutputMixin",
-    "ServerPlayerInteractionManagerMixin"
+    "ServerPlayerInteractionManagerMixin",
+    "ServerWorldMixin",
+    "WorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1

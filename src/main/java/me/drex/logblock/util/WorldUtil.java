@@ -1,7 +1,7 @@
 package me.drex.logblock.util;
 
 import com.google.common.collect.Lists;
-import me.drex.logblock.LogBlockMod;
+import me.drex.logblock.BlockLog;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.registry.RegistryKey;
@@ -21,7 +21,7 @@ public class WorldUtil {
     }
 
     private static MinecraftServer server() {
-        return LogBlockMod.server;
+        return BlockLog.server;
     }
 
     public static ServerWorld getServerWorld(DimensionType dimensionType) {

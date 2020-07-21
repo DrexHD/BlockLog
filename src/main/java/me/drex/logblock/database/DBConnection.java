@@ -1,5 +1,8 @@
 package me.drex.logblock.database;
 
+import me.drex.logblock.config.Config;
+import me.drex.logblock.config.LogBlockConfig;
+
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -8,9 +11,9 @@ public class DBConnection {
 
     private final java.sql.Connection connection;
 
-    public DBConnection() throws ClassNotFoundException, SQLException {
-        Class.forName("com.mysql.jdbc.Driver");
-        this.connection = DriverManager.getConnection("jdbc:sqlite:test.db");
+    public DBConnection() throws SQLException {
+        Config config = LogBlockConfig.getConfig();
+        this.connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/" + config.database, config.databaseUser, config.databasePassword);
         setupTables();
     }
 

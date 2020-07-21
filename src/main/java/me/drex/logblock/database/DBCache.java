@@ -3,31 +3,43 @@ package me.drex.logblock.database;
 import me.drex.logblock.util.WorldUtil;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.dimension.DimensionType;
+import org.apache.commons.lang3.time.StopWatch;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Logger;
 
 public class DBCache {
 
     private final Connection connection;
-    private final PreparedStatement cachedEntries;
+    private final PreparedStatement insert;
     private final PreparedStatement cachedUndos;
     HashMap<Integer, String> blockCache = new HashMap<>();
     HashMap<Integer, String> entityCache = new HashMap<>();
     HashMap<Integer, String> dimensionCache = new HashMap<>();
-    private int statements = 0;
-    int wait = 500;
+    public static int wait = 500;
+    public static int statements = 0;
+    public static boolean running = false;
+    public static StopWatch timeRunning = new StopWatch();
+    public static StopWatch timeNotRunning = new StopWatch();
+    public static StopWatch timeSpentRunning = StopWatch.createStarted();
+    public static StopWatch timeSpentNotRunning = StopWatch.createStarted();
+    public static int timesRun = 1;
+    private Logger logger = Logger.getLogger("SBL");
+
 
     public DBCache(Connection connection) throws SQLException {
         this.connection = connection;
-        this.cachedEntries = connection.prepareStatement("INSERT INTO history (id, entityid, x, y, z, dimensionid, blockid, pblockid, time, placed, undone) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        this.insert = connection.prepareStatement("INSERT INTO history (entityid, x, y, z, dimensionid, blockid, pblockid, time, placed, undone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         this.cachedUndos = connection.prepareStatement("UPDATE history SET undone = ? WHERE id = ?");
         loadBlocks();
         loadEntities();
         loadDimensions();
-        startThread();
+        timeSpentRunning.suspend();
+//        startThread();
     }
 
     private void loadEntities() throws SQLException {
@@ -55,34 +67,50 @@ public class DBCache {
     }
 
     public void startThread() {
-        /*TODO: Fix this (thread randomly stops + some stuff isn't logged*/
         CompletableFuture.runAsync(() -> {
             Thread.currentThread().setName("SQL Executor");
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-/*                    LogBlockMod.server.getPlayerManager().getPlayerList().forEach(playerEntity -> {
-                        playerEntity.networkHandler.sendPacket(new TitleS2CPacket(TitleS2CPacket.Action.ACTIONBAR, new LiteralText("Working on " + statements + " entries!").formatted(Formatting.AQUA), -1, 50, -1));
-                    });*/
                     Thread.sleep(wait);
-                    if(statements > 0) {
-                        System.out.println(statements);
-                        modifyEntries(null, null, null, null, null, false);
-                        modifyUndos(0, false);
+                    if (statements > 0) {
+                        timeNotRunning.reset();
+                        timeSpentNotRunning.suspend();
+                        timeSpentRunning.resume();
+                        timeRunning.start();
+                        running = true;
+                        modifyEntries(null, null, null, null, null,0, false);
+                        running = false;
+                        timeNotRunning.start();
+                        timeRunning.reset();
+                        statements = 0;
+                        timesRun++;
+                        timeSpentNotRunning.resume();
+                        timeSpentRunning.suspend();
                     }
-                    statements = 0;
                 } catch (InterruptedException | SQLException ex) {
                     ex.printStackTrace();
                     Thread.currentThread().interrupt();
                 }
             }
+            System.out.println("Thread stopped!");
         });
     }
 
+    @Nullable
     public String getDimension(int id) throws SQLException {
         if (dimensionCache.containsKey(id)) {
             return dimensionCache.get(id);
         }
         return getFromDatabase("dimensions", id);
+    }
+
+    public int getOrCreateDimension(String value) throws SQLException {
+        if (dimensionCache.containsValue(value)) {
+            for (Map.Entry<Integer, String> entry : dimensionCache.entrySet()) {
+                if (entry.getValue().equals(value)) return entry.getKey();
+            }
+        }
+        return getOrCreateFromDatabase("dimensions", value);
     }
 
     public int getDimension(String value) throws SQLException {
@@ -94,11 +122,21 @@ public class DBCache {
         return getFromDatabase("dimensions", value);
     }
 
+    @Nullable
     public String getBlock(int id) throws SQLException {
         if (blockCache.containsKey(id)) {
             return blockCache.get(id);
         }
         return getFromDatabase("blocks", id);
+    }
+
+    public int getOrCreateBlock(String value) throws SQLException {
+        if (blockCache.containsValue(value)) {
+            for (Map.Entry<Integer, String> entry : blockCache.entrySet()) {
+                if (entry.getValue().equals(value)) return entry.getKey();
+            }
+        }
+        return getOrCreateFromDatabase("blocks", value);
     }
 
     public int getBlock(String value) throws SQLException {
@@ -110,11 +148,21 @@ public class DBCache {
         return getFromDatabase("blocks", value);
     }
 
+    @Nullable
     public String getEntity(int id) throws SQLException {
         if (entityCache.containsKey(id)) {
             return entityCache.get(id);
         }
         return getFromDatabase("entities", id);
+    }
+
+    public int getOrCreateEntity(String value) throws SQLException {
+        if (entityCache.containsValue(value)) {
+            for (Map.Entry<Integer, String> entry : entityCache.entrySet()) {
+                if (entry.getValue().equals(value)) return entry.getKey();
+            }
+        }
+        return getOrCreateFromDatabase("entities", value);
     }
 
     public int getEntity(String value) throws SQLException {
@@ -126,47 +174,66 @@ public class DBCache {
         return getFromDatabase("entities", value);
     }
 
+    @Nullable
     private String getFromDatabase(String table, int id) throws SQLException {
-        PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + table + " WHERE id = ?");
+        PreparedStatement statement = connection.prepareStatement("SELECT value FROM " + table + " WHERE id = ?");
         statement.setInt(1, id);
         ResultSet resultSet = statement.executeQuery();
-        return resultSet.getString("value");
+        if (resultSet.next())
+            return resultSet.getString("value");
+        return null;
     }
 
+    /**
+     * @param table of the value
+     * @param value to search
+    * @return id of entry, 0 if the entry doesnt exist
+    * */
     private int getFromDatabase(String table, String value) throws SQLException {
-        PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + table + " WHERE value = ?");
+        PreparedStatement statement = connection.prepareStatement("SELECT id FROM " + table + " WHERE value = ?");
+        statement.setString(1, value);
+        ResultSet resultSet = statement.executeQuery();
+        if (resultSet.next()) {
+            return resultSet.getInt("id");
+        } else {
+            return 0;
+        }
+    }
+
+    private int getOrCreateFromDatabase(String table, String value) throws SQLException {
+        PreparedStatement statement = connection.prepareStatement("SELECT id FROM " + table + " WHERE value = ?");
         statement.setString(1, value);
         ResultSet resultSet = statement.executeQuery();
         if (resultSet.next()) {
             return resultSet.getInt("id");
         } else {
             addToDatabase(table, value);
-            return getFromDatabase(table, value);
+            return getOrCreateFromDatabase(table, value);
         }
     }
 
     private void addToDatabase(String table, String value) throws SQLException {
-        PreparedStatement statement = connection.prepareStatement("INSERT INTO " + table + " (id, value)" + " VALUES (NULL, ?)");
+        PreparedStatement statement = connection.prepareStatement("INSERT INTO " + table + " (value)" + " VALUES (?)");
         statement.setString(1, value);
         statement.executeUpdate();
     }
 
     /*This method ensures that cachedStatements is only accessed and changed by one thread at a time*/
-    private synchronized void modifyEntries(String uuid, BlockPos pos, DimensionType dimensionType, String block, String pblock, boolean placed) throws SQLException {
+    public synchronized void modifyEntries(String uuid, BlockPos pos, DimensionType dimensionType, String block, String pblock, long time, boolean placed) throws SQLException {
         if (uuid == null) {
-            cachedEntries.executeBatch();
+            insert.executeBatch();
         } else {
-            cachedEntries.setInt(1, getEntity(uuid));
-            cachedEntries.setInt(2, pos.getX());
-            cachedEntries.setInt(3, pos.getY());
-            cachedEntries.setInt(4, pos.getZ());
-            cachedEntries.setInt(5, getDimension(WorldUtil.getDimensionNameWithNameSpace(dimensionType)));
-            cachedEntries.setInt(6, getBlock(block));
-            cachedEntries.setInt(7, getBlock(pblock));
-            cachedEntries.setLong(8, System.currentTimeMillis());
-            cachedEntries.setBoolean(9, placed);
-            cachedEntries.setBoolean(10, false);
-            cachedEntries.addBatch();
+            insert.setInt(1, getOrCreateEntity(uuid));
+            insert.setInt(2, pos.getX());
+            insert.setInt(3, pos.getY());
+            insert.setInt(4, pos.getZ());
+            insert.setInt(5, getOrCreateDimension(WorldUtil.getDimensionNameWithNameSpace(dimensionType)));
+            insert.setInt(6, getOrCreateBlock(block));
+            insert.setInt(7, getOrCreateBlock(pblock));
+            insert.setLong(8, time);
+            insert.setBoolean(9, placed);
+            insert.setBoolean(10, false);
+            insert.addBatch();
         }
     }
 
@@ -181,11 +248,33 @@ public class DBCache {
         }
     }
 
-    public void addEntry(String uuid, BlockPos pos, DimensionType dimensionType, String block, String pblock, boolean placed) {
+    public void addEntry(String uuid, BlockPos pos, DimensionType dimensionType, String block, String pblock, long time, boolean placed) {
         statements++;
+//        CompletableFuture.runAsync(() -> {
+            try {
+                modifyEntries(uuid, pos, dimensionType, block, pblock, time, placed);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+//        });
+    }
+
+    public void executeEntry(String uuid, BlockPos pos, DimensionType dimensionType, String block, String pblock, long time, boolean placed) {
         CompletableFuture.runAsync(() -> {
             try {
-                modifyEntries(uuid, pos, dimensionType, block, pblock, placed);
+                PreparedStatement insert = connection.prepareStatement("INSERT INTO history (entityid, x, y, z, dimensionid, blockid, pblockid, time, placed, undone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                insert.setInt(1, getOrCreateEntity(uuid));
+                insert.setInt(2, pos.getX());
+                insert.setInt(3, pos.getY());
+                insert.setInt(4, pos.getZ());
+                insert.setInt(5, getOrCreateDimension(WorldUtil.getDimensionNameWithNameSpace(dimensionType)));
+                insert.setInt(6, getOrCreateBlock(block));
+                insert.setInt(7, getOrCreateBlock(pblock));
+                insert.setLong(8, time);
+                insert.setBoolean(9, placed);
+                insert.setBoolean(10, false);
+                insert.addBatch();
+                insert.executeUpdate();
             } catch (SQLException e) {
                 e.printStackTrace();
             }

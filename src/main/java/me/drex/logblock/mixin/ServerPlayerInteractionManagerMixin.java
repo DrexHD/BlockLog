@@ -1,12 +1,8 @@
 package me.drex.logblock.mixin;
 
-import me.drex.logblock.LogBlockMod;
+import me.drex.logblock.BlockLog;
 import me.drex.logblock.util.BlockUtil;
-import me.drex.logblock.util.ItemUtil;
 import net.minecraft.block.Block;
-import net.minecraft.block.FlowerBlock;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -44,22 +40,31 @@ public class ServerPlayerInteractionManagerMixin {
 
     @Inject(method = "finishMining", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerPlayNetworkHandler;sendPacket(Lnet/minecraft/network/Packet;)V"))
     private void remove(BlockPos pos, PlayerActionC2SPacket.Action action, String reason, CallbackInfo ci) {
-        LogBlockMod.getCache().addEntry(this.player.getUuid().toString(), pos, this.world.getDimension(), "minecraft:air", BlockUtil.toName(block), false);
+        BlockLog.getCache().executeEntry(this.player.getUuid().toString(), pos, this.world.getDimension(), "minecraft:air", BlockUtil.toName(block), System.currentTimeMillis(), false);
     }
 
 
-    @Inject(method = "interactBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;isEmpty()Z", ordinal = 2))
+    @Inject(method = "interactBlock", at = @At(value = "HEAD"))
     private void place(ServerPlayerEntity player, World world, ItemStack stack, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
-        Item item = stack.getItem();
-        if (item instanceof BlockItem) {
+/*        try {
+            Item item = stack.getItem();
+            UUID uuid = this.player.getUuid();
             BlockPos hitPos = hitResult.getBlockPos();
-            Block block = this.world.getBlockState(hitPos).getBlock();
-            BlockPos pos = hitPos;
-            if (!block.canMobSpawnInside() || block instanceof FlowerBlock) {
-                pos = pos.offset(hitResult.getSide());
+            if (item instanceof BlockItem) {
+                Block block = this.world.getBlockState(hitPos).getBlock();
+                BlockPos pos = hitPos;
+                if (!block.canMobSpawnInside() || block instanceof FlowerBlock) {
+                    pos = pos.offset(hitResult.getSide());
+                }
+                LogBlockMod.getCache().addEntry(uuid.toString(), pos, this.world.getDimension(), ItemUtil.toName(item), BlockUtil.toName(this.world.getBlockState(pos).getBlock()), System.currentTimeMillis(), true);
+            } else if (item == Items.AIR && LogBlockMod.isInspecting(uuid)) {
+                String criteria = "x = " + hitPos.getX() + " AND " + "y BETWEEN " + 0 + " AND " + 256 + " AND " + "z = " + hitPos.getZ();
+                ResultSet resultSet = DBUtil.getDataWhere(criteria);
+                MessageUtil.send(this.player.getCommandSource(), resultSet, new LiteralText("Block history at ").formatted(Formatting.GRAY).append(new LiteralText(hitPos.getX() + " " + hitPos.getZ() + " " + hitPos.getZ()).formatted(Formatting.WHITE)));
             }
-            LogBlockMod.getCache().addEntry(this.player.getUuid().toString(), pos, this.world.getDimension(), ItemUtil.toName(item), BlockUtil.toName(this.world.getBlockState(pos).getBlock()), true);
-        }
+        } catch (SQLException | CommandSyntaxException e) {
+            e.printStackTrace();
+        }*/
     }
 
 /*    @Inject(method = "interactBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;isEmpty()Z", ordinal = 2))
@@ -70,5 +75,4 @@ public class ServerPlayerInteractionManagerMixin {
             DBUtil.createEntryAsync(profile.getName(), profile.getId(), hitResult.getBlockPos().offset(hitResult.getSide()), this.world.getDimension(), ItemUtil.toName(item), true);
         }
     }*/
-
 }

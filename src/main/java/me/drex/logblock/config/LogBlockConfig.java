@@ -1,8 +1,7 @@
 package me.drex.logblock.config;
 
 import com.google.common.reflect.TypeToken;
-import joptsimple.internal.Messages;
-import me.drex.logblock.LogBlockMod;
+import me.drex.logblock.BlockLog;
 import ninja.leaping.configurate.ConfigurationNode;
 import ninja.leaping.configurate.ConfigurationOptions;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
@@ -17,34 +16,15 @@ import java.io.IOException;
 
 public class LogBlockConfig {
     private static Config config;
-    private static Messages messages;
     private static ConfigurationNode mainNode;
-    private static ConfigurationNode messagesNode;
 
-    public static Config main() {
+    public static Config getConfig() {
         return config;
-    }
-
-    public static Messages messages() {
-        return messages;
-    }
-
-    public static ConfigurationNode getMainNode() {
-        return mainNode;
-    }
-
-    public static ConfigurationNode getMessagesNode() {
-        return messagesNode;
-    }
-
-    public static String getMessage(String key, Object... objects) {
-        String msg = messagesNode.getNode((Object) key.split("\\.")).getString();
-        return objects.length == 0 ? msg : msg != null ? String.format(msg, objects) : "Null<" + key + "?>";
     }
 
     public static void load() {
         try {
-            File CONFIG_FILE = LogBlockMod.getPath().resolve("AntiXray.hocon").toFile();
+            File CONFIG_FILE = BlockLog.getPath().resolve("logblock.hocon").toFile();
             ConfigurationLoader<CommentedConfigurationNode> mainLoader = HoconConfigurationLoader.builder()
                     .setFile(CONFIG_FILE).build();
 
@@ -56,7 +36,7 @@ public class LogBlockConfig {
 
             mainLoader.save(mainNode);
         } catch (IOException | ObjectMappingException e) {
-            LogBlockMod.getLogger().error("Exception handling a configuration file! " + LogBlockConfig.class.getName());
+            BlockLog.getLogger().error("Exception handling a configuration file! " + LogBlockConfig.class.getName());
             e.printStackTrace();
         }
     }

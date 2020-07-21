@@ -9,4 +9,8 @@ public class BlockUtil {
         return Registry.BLOCK.getId(block).getNamespace() + ":" + Registry.BLOCK.getId(block).getPath();
     }
 
+    public static String toNameNoNameSpace(Block block) {
+        return Registry.BLOCK.getId(block).getPath();
+    }
+
 }
