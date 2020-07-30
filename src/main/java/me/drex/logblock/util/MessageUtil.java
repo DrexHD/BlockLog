@@ -83,7 +83,7 @@ public class MessageUtil {
                     } else {
                         cause = entity;
                     }
-                    MutableText text = new LiteralText(convertSecondsToString((dateDiff / 1000)) + " ago").formatted(Formatting.GRAY)
+                    MutableText text = new LiteralText(convertmillisecondstoString((dateDiff)) + " ago").formatted(Formatting.GRAY)
                             .append(new LiteralText(" - ").formatted(Formatting.WHITE))
                             .append(new LiteralText(cause).formatted(Formatting.AQUA))
                             .append(new LiteralText(placed ? " placed " : " removed ").formatted(placed ? Formatting.GREEN : Formatting.RED))
@@ -119,31 +119,32 @@ public class MessageUtil {
         }
     }
 
-    private static String convertSecondsToString(double seconds) {
-        if (seconds >= 60) {
-            if (seconds >= 3600) {
-                if (seconds >= 86400) {
-                    if (seconds >= 604800) {
-                        if (seconds >= 2630016) {
-                            if (seconds >= 31556952) {
-                                return df2.format(seconds / 31556952) + "y";
+    private static String convertmillisecondstoString(double time) {
+        if (time >= 60000) {
+            time /= 1000;
+            if (time >= 3600) {
+                if (time >= 86400) {
+                    if (time >= 604800) {
+                        if (time >= 2630016) {
+                            if (time >= 31556952) {
+                                return df2.format(time / 31556952) + "y";
                             } else {
-                                return df2.format(seconds / 2630016) + "mo";
+                                return df2.format(time / 2630016) + "mo";
                             }
                         } else {
-                            return df2.format(seconds / 604800) + "w";
+                            return df2.format(time / 604800) + "w";
                         }
                     } else {
-                        return df2.format(seconds / 86400) + "d";
+                        return df2.format(time / 86400) + "d";
                     }
                 } else {
-                    return df2.format(seconds / 3600) + "h";
+                    return df2.format(time / 3600) + "h";
                 }
             } else {
-                return df2.format(seconds / 60) + "m";
+                return df2.format(time / 60) + "m";
             }
         } else {
-            return df2.format(seconds) + "s";
+            return df2.format(time/1000) + "s";
         }
     }
 

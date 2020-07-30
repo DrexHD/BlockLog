@@ -1,9 +1,9 @@
 package me.drex.logblock.mixin;
 
 import me.drex.logblock.BlockLog;
-import me.drex.logblock.util.BlockUtil;
 import me.drex.logblock.util.EntityUtil;
-import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -20,9 +20,15 @@ public class ExplosionMixin {
     @Shadow @Final
     private Entity entity;
 
-    @Redirect(method = "affectWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/Block;onDestroyedByExplosion(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/explosion/Explosion;)V"))
-    private void destroyBlock(Block block, World world, BlockPos pos, Explosion explosion) {
-        BlockLog.getCache().executeEntry("-" + EntityUtil.toName(this.entity.getType()), pos, world.getDimension(), "minecraft:air", BlockUtil.toName(block), System.currentTimeMillis(), false);
-        block.onDestroyedByExplosion(world, pos, (Explosion) (Object) this);
+    @Shadow @Final private World world;
+
+
+    @Redirect(method = "affectWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/BlockState;", ordinal = 0))
+    private BlockState onBlockExplosion(World world, BlockPos pos) {
+        BlockState blockState = this.world.getBlockState(pos);
+        BlockLog.getCache().addEntryAsync("-" + EntityUtil.toName(this.entity.getType()), pos, world.getDimension(), Blocks.AIR.getDefaultState(), blockState, System.currentTimeMillis(), false);
+        return blockState;
     }
+
+
 }

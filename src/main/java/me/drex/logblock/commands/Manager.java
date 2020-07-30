@@ -21,11 +21,12 @@ public class Manager {
     }
 
     public static void register(LiteralArgumentBuilder<ServerCommandSource> command, CommandDispatcher dispatcher) {
-        Rollback.register(command);
+        RollbackCommand.register(command);
         UndoCommand.register(command);
         LookupCommand.register(command);
         InspectCommand.register(command);
         PageCommand.register(command);
+        InfoCommand.register(command);
     }
 
 }

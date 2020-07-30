@@ -7,8 +7,10 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
 import me.drex.logblock.util.ArgumentUtil;
+import me.drex.logblock.util.BlockStateUtil;
 import me.drex.logblock.util.WorldUtil;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.LiteralText;
@@ -25,7 +27,7 @@ import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-public class Rollback {
+public class RollbackCommand {
 
     public static void register(LiteralArgumentBuilder<ServerCommandSource> command) {
         LiteralArgumentBuilder<ServerCommandSource> rollback = LiteralArgumentBuilder.literal("rollback");
@@ -56,10 +58,14 @@ public class Rollback {
                 criterias.add(ArgumentUtil.parseTime(context));
                 criterias.add("dimensionid = " + BlockLog.getCache().getDimension(WorldUtil.getDimensionNameWithNameSpace(context.getSource().getWorld().getDimension())));
                 criterias.add("undone=" + (undo ? "true" : "false"));
-                ResultSet resultSet = DBUtil.getDataWhere(LookupCommand.parseQuery("", criterias));
+                ResultSet resultSet = DBUtil.getDataWhere(LookupCommand.parseQuery("", criterias), true);
                 resultSet.last();
                 int size = resultSet.getRow();
                 resultSet.beforeFirst();
+                if (size > 5000) {
+                    context.getSource().sendError(new LiteralText("You can't manipulate more than 5000 blocks at once!").formatted(Formatting.RED));
+                    return;
+                }
                 context.getSource().sendFeedback(new LiteralText("Query done, starting rollback ").formatted(Formatting.WHITE).append(new LiteralText("(" + size + " actions)").formatted(Formatting.GRAY)).append(new LiteralText("!").formatted(Formatting.WHITE)), false);
                 int i = 0;
                 while (resultSet.next()) {
@@ -71,8 +77,9 @@ public class Rollback {
                     int z = resultSet.getInt("z");
                     World world = WorldUtil.getWorldType(BlockLog.getCache().getDimension(resultSet.getInt("dimensionid")));
                     String blockName = BlockLog.getCache().getBlock(resultSet.getInt(undo ? "blockid" : "pblockid"));
+                    String blockState = BlockLog.getCache().getBlockState(resultSet.getInt(undo ? "blockstateid" : "pblockstateid"));
                     Block block = Registry.BLOCK.get(new Identifier(blockName));
-                    setBlock(new BlockPos(x, y, z), block, world, resultSet.getInt("id"), !undo);
+                    setBlock(new BlockPos(x, y, z), BlockStateUtil.fromString(block, blockState), world, resultSet.getInt("id"), !undo);
                     setBlockTime.stop();
                     if (setBlockTime.getTime() > 1000) {
                         context.getSource().sendFeedback(new LiteralText("Warning: " + blockName + " took " + setBlockTime.getTime() + "ms to be placed!").formatted(Formatting.RED), false);
@@ -90,9 +97,9 @@ public class Rollback {
         return 1;
     }
 
-    public static void setBlock(BlockPos pos, Block block, World world, int id, boolean undone) throws SQLException {
+    public static void setBlock(BlockPos pos, BlockState blockState, World world, int id, boolean undone) throws SQLException {
         StopWatch stopWatch = StopWatch.createStarted();
-        world.setBlockState(pos, block.getDefaultState());
+        world.setBlockState(pos, blockState);
         DBUtil.setUndone(id, undone);
         stopWatch.stop();
     }

@@ -1,6 +1,9 @@
 package me.drex.logblock.database;
 
+import me.drex.logblock.util.BlockStateUtil;
+import me.drex.logblock.util.BlockUtil;
 import me.drex.logblock.util.WorldUtil;
+import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.dimension.DimensionType;
 import org.apache.commons.lang3.time.StopWatch;
@@ -20,6 +23,7 @@ public class DBCache {
     HashMap<Integer, String> blockCache = new HashMap<>();
     HashMap<Integer, String> entityCache = new HashMap<>();
     HashMap<Integer, String> dimensionCache = new HashMap<>();
+    HashMap<Integer, String> blockstateCache = new HashMap<>();
     public static int wait = 500;
     public static int statements = 0;
     public static boolean running = false;
@@ -35,8 +39,9 @@ public class DBCache {
         this.connection = connection;
         this.insert = connection.prepareStatement("INSERT INTO history (entityid, x, y, z, dimensionid, blockid, pblockid, time, placed, undone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         this.cachedUndos = connection.prepareStatement("UPDATE history SET undone = ? WHERE id = ?");
-        loadBlocks();
         loadEntities();
+        loadBlocks();
+        loadBlockStates();
         loadDimensions();
         timeSpentRunning.suspend();
 //        startThread();
@@ -58,6 +63,14 @@ public class DBCache {
         }
     }
 
+    private void loadBlockStates() throws SQLException {
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery("SELECT * FROM blockstates");
+        while (resultSet.next()) {
+            blockstateCache.put(resultSet.getInt("id"), resultSet.getString("value"));
+        }
+    }
+
     private void loadDimensions() throws SQLException {
         Statement statement = connection.createStatement();
         ResultSet resultSet = statement.executeQuery("SELECT * FROM dimensions");
@@ -66,7 +79,7 @@ public class DBCache {
         }
     }
 
-    public void startThread() {
+/*    public void startThread() {
         CompletableFuture.runAsync(() -> {
             Thread.currentThread().setName("SQL Executor");
             while (!Thread.currentThread().isInterrupted()) {
@@ -94,7 +107,7 @@ public class DBCache {
             }
             System.out.println("Thread stopped!");
         });
-    }
+    }*/
 
     @Nullable
     public String getDimension(int id) throws SQLException {
@@ -146,6 +159,32 @@ public class DBCache {
             }
         }
         return getFromDatabase("blocks", value);
+    }
+
+    @Nullable
+    public String getBlockState(int id) throws SQLException {
+        if (blockstateCache.containsKey(id)) {
+            return blockstateCache.get(id);
+        }
+        return getFromDatabase("blockstates", id);
+    }
+
+    public int getOrCreateBlockState(String value) throws SQLException {
+        if (blockstateCache.containsValue(value)) {
+            for (Map.Entry<Integer, String> entry : blockstateCache.entrySet()) {
+                if (entry.getValue().equals(value)) return entry.getKey();
+            }
+        }
+        return getOrCreateFromDatabase("blockstates", value);
+    }
+
+    public int getBlockState(String value) throws SQLException {
+        if (blockstateCache.containsValue(value)) {
+            for (Map.Entry<Integer, String> entry : blockstateCache.entrySet()) {
+                if (entry.getValue().equals(value)) return entry.getKey();
+            }
+        }
+        return getFromDatabase("blockstates", value);
     }
 
     @Nullable
@@ -259,20 +298,22 @@ public class DBCache {
 //        });
     }
 
-    public void executeEntry(String uuid, BlockPos pos, DimensionType dimensionType, String block, String pblock, long time, boolean placed) {
+    public void addEntryAsync(String uuid, BlockPos pos, DimensionType dimensionType, BlockState block, BlockState pblock, long time, boolean placed) {
         CompletableFuture.runAsync(() -> {
             try {
-                PreparedStatement insert = connection.prepareStatement("INSERT INTO history (entityid, x, y, z, dimensionid, blockid, pblockid, time, placed, undone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                PreparedStatement insert = connection.prepareStatement("INSERT INTO history (entityid, x, y, z, dimensionid, blockid, blockstateid, pblockid, pblockstateid, time, placed, undone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 insert.setInt(1, getOrCreateEntity(uuid));
                 insert.setInt(2, pos.getX());
                 insert.setInt(3, pos.getY());
                 insert.setInt(4, pos.getZ());
                 insert.setInt(5, getOrCreateDimension(WorldUtil.getDimensionNameWithNameSpace(dimensionType)));
-                insert.setInt(6, getOrCreateBlock(block));
-                insert.setInt(7, getOrCreateBlock(pblock));
-                insert.setLong(8, time);
-                insert.setBoolean(9, placed);
-                insert.setBoolean(10, false);
+                insert.setInt(6, getOrCreateBlock(BlockUtil.toName(block.getBlock())));
+                insert.setInt(7, getOrCreateBlockState(BlockStateUtil.toJsonString(block)));
+                insert.setInt(8, getOrCreateBlock(BlockUtil.toName(pblock.getBlock())));
+                insert.setInt(9, getOrCreateBlockState(BlockStateUtil.toJsonString(pblock)));
+                insert.setLong(10, time);
+                insert.setBoolean(11, placed);
+                insert.setBoolean(12, false);
                 insert.addBatch();
                 insert.executeUpdate();
             } catch (SQLException e) {

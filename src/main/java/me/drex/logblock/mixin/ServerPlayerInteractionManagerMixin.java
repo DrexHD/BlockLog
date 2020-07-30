@@ -1,25 +1,28 @@
 package me.drex.logblock.mixin;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.drex.logblock.BlockLog;
-import me.drex.logblock.util.BlockUtil;
-import net.minecraft.block.Block;
-import net.minecraft.item.ItemStack;
+import me.drex.logblock.database.DBUtil;
+import me.drex.logblock.util.MessageUtil;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.network.ServerPlayerInteractionManager;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.text.LiteralText;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 @Mixin(ServerPlayerInteractionManager.class)
 public class ServerPlayerInteractionManagerMixin {
@@ -30,49 +33,26 @@ public class ServerPlayerInteractionManagerMixin {
     @Shadow
     public ServerWorld world;
 
-    public Block block;
+    public BlockState blockstate;
 
 
     @Inject(method = "processBlockBreakingAction", at = @At(value = "HEAD"))
-    private void getBlock(BlockPos pos, PlayerActionC2SPacket.Action action, Direction direction, int worldHeight, CallbackInfo ci) {
-        this.block = this.world.getBlockState(pos).getBlock();
+    private void BlockLogger$getBlock(BlockPos pos, PlayerActionC2SPacket.Action action, Direction direction, int worldHeight, CallbackInfo ci) {
+        this.blockstate = this.world.getBlockState(pos);
     }
 
     @Inject(method = "finishMining", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerPlayNetworkHandler;sendPacket(Lnet/minecraft/network/Packet;)V"))
-    private void remove(BlockPos pos, PlayerActionC2SPacket.Action action, String reason, CallbackInfo ci) {
-        BlockLog.getCache().executeEntry(this.player.getUuid().toString(), pos, this.world.getDimension(), "minecraft:air", BlockUtil.toName(block), System.currentTimeMillis(), false);
+    private void BlockLogger$destroyBlock(BlockPos pos, PlayerActionC2SPacket.Action action, String reason, CallbackInfo ci) {
+        BlockLog.getCache().addEntryAsync(this.player.getUuid().toString(), pos, this.world.getDimension(), Blocks.AIR.getDefaultState(), blockstate, System.currentTimeMillis(), false);
     }
 
 
-    @Inject(method = "interactBlock", at = @At(value = "HEAD"))
-    private void place(ServerPlayerEntity player, World world, ItemStack stack, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
-/*        try {
-            Item item = stack.getItem();
-            UUID uuid = this.player.getUuid();
-            BlockPos hitPos = hitResult.getBlockPos();
-            if (item instanceof BlockItem) {
-                Block block = this.world.getBlockState(hitPos).getBlock();
-                BlockPos pos = hitPos;
-                if (!block.canMobSpawnInside() || block instanceof FlowerBlock) {
-                    pos = pos.offset(hitResult.getSide());
-                }
-                LogBlockMod.getCache().addEntry(uuid.toString(), pos, this.world.getDimension(), ItemUtil.toName(item), BlockUtil.toName(this.world.getBlockState(pos).getBlock()), System.currentTimeMillis(), true);
-            } else if (item == Items.AIR && LogBlockMod.isInspecting(uuid)) {
-                String criteria = "x = " + hitPos.getX() + " AND " + "y BETWEEN " + 0 + " AND " + 256 + " AND " + "z = " + hitPos.getZ();
-                ResultSet resultSet = DBUtil.getDataWhere(criteria);
-                MessageUtil.send(this.player.getCommandSource(), resultSet, new LiteralText("Block history at ").formatted(Formatting.GRAY).append(new LiteralText(hitPos.getX() + " " + hitPos.getZ() + " " + hitPos.getZ()).formatted(Formatting.WHITE)));
-            }
-        } catch (SQLException | CommandSyntaxException e) {
-            e.printStackTrace();
-        }*/
-    }
-
-/*    @Inject(method = "interactBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;isEmpty()Z", ordinal = 2))
-    private void onplace(ServerPlayerEntity player, World world, ItemStack stack, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
-        Item item = stack.getItem();
-        if (item instanceof BlockItem) {
-            GameProfile profile = this.player.getGameProfile();
-            DBUtil.createEntryAsync(profile.getName(), profile.getId(), hitResult.getBlockPos().offset(hitResult.getSide()), this.world.getDimension(), ItemUtil.toName(item), true);
+    @Inject(method = "processBlockBreakingAction", at = @At(value = "HEAD"))
+    private void BlockLogger$clickBlock(BlockPos pos, PlayerActionC2SPacket.Action action, Direction direction, int worldHeight, CallbackInfo ci) throws SQLException, CommandSyntaxException {
+        if (this.player.getMainHandStack().getItem() == Items.AIR && BlockLog.isInspecting(this.player.getUuid())) {
+            String criteria = "x = " + pos.getX() + " AND " + "y = " + pos.getY() + " AND " + "z = " + pos.getZ();
+            ResultSet resultSet = DBUtil.getDataWhere(criteria, false);
+            MessageUtil.send(this.player.getCommandSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
         }
-    }*/
+    }
 }

@@ -1,14 +1,14 @@
 package me.drex.logblock.mixin;
 
 import me.drex.logblock.BlockLog;
-import me.drex.logblock.util.BlockUtil;
-import me.drex.logblock.util.ItemUtil;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.util.ActionResult;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(BlockItem.class)
 public class BlockItemMixin {
 
+    @Shadow @Final @Deprecated private Block block;
     BlockState blockState;
 
     @Inject(method = "place(Lnet/minecraft/item/ItemPlacementContext;)Lnet/minecraft/util/ActionResult;", at = @At(value = "HEAD"))
@@ -32,7 +33,11 @@ public class BlockItemMixin {
             clazz.getName();
 
         });
-        BlockLog.getCache().executeEntry(context.getPlayer().getUuidAsString(), context.getBlockPos(), context.getWorld().getDimension(), ItemUtil.toName((Item) (Object) this), BlockUtil.toName(blockState.getBlock()), System.currentTimeMillis(), true);
+
+/*        Gson gson = new Gson();
+        gson.toJson(blockState);
+        System.out.println(gson.toString());*/
+        BlockLog.getCache().addEntryAsync(context.getPlayer().getUuidAsString(), context.getBlockPos(), context.getWorld().getDimension(), context.getWorld().getBlockState(context.getBlockPos()), blockState, System.currentTimeMillis(), true);
 /*        try {
             Item item = stack.getItem();
             UUID uuid = this.player.getUuid();

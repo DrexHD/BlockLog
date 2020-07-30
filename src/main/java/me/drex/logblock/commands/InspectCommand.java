@@ -43,7 +43,7 @@ public class InspectCommand {
         try {
             BlockPos pos = BlockPosArgumentType.getBlockPos(context, "blockpos");
             String criteria = "x = " + pos.getX() + " AND " + "y = " + pos.getY() + " AND " + "z = " + pos.getZ();
-            ResultSet resultSet = DBUtil.getDataWhere(criteria);
+            ResultSet resultSet = DBUtil.getDataWhere(criteria, false);
             MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText( pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
         } catch (SQLException e) {
             e.printStackTrace();

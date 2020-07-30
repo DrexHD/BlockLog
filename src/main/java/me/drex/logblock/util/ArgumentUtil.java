@@ -34,6 +34,14 @@ public class ArgumentUtil {
         }
         return CommandSource.suggestMatching(strings, builder);
     };
+
+    public static final SuggestionProvider<ServerCommandSource> PLAYER = (source, builder) -> {
+        List<String> strings = new ArrayList<>();
+        for (ServerPlayerEntity player : BlockLog.server.getPlayerManager().getPlayerList()) {
+            strings.add(player.getEntityName());
+        }
+        return CommandSource.suggestMatching(strings, builder);
+    };
     public static final SuggestionProvider<ServerCommandSource> RADIUS = (source, builder) -> {
         List<String> strings = new ArrayList<>();
         strings.add("-global");
@@ -41,7 +49,7 @@ public class ArgumentUtil {
             for (int i = 1; i < 10; i++) {
                 strings.add(String.valueOf(i));
             }
-        } else if (builder.getRemaining().matches("[\\d]")) {
+        } else if (builder.getRemaining().matches("[\\d]{1,3}")) {
             for (int i = 0; i < 10; i++) {
                 strings.add(builder.getRemaining() + i);
             }
@@ -71,6 +79,10 @@ public class ArgumentUtil {
 
     public static RequiredArgumentBuilder<ServerCommandSource, String> getUser() {
         return argument("user", word()).suggests(USER);
+    }
+
+    public static RequiredArgumentBuilder<ServerCommandSource, String> getPlayer() {
+        return argument("player", word()).suggests(PLAYER);
     }
 
     public static RequiredArgumentBuilder<ServerCommandSource, String> getRadius() {
@@ -105,8 +117,17 @@ public class ArgumentUtil {
             }
             return "entityid = " + userID;
         }
-
     }
+
+    public static GameProfile parsePlayer(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        String input = StringArgumentType.getString(context, "user");
+        GameProfile profile = BlockLog.server.getUserCache().findByName(input);
+        if (profile == null || !profile.isComplete()) {
+            throw new SimpleCommandExceptionType(new LiteralText("Couldn't find player!")).create();
+        }
+        return profile;
+    }
+
 
     public static String parseRadius(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         String input = StringArgumentType.getString(context, "radius");
@@ -154,15 +175,20 @@ public class ArgumentUtil {
                 long time = Long.parseLong(numbers);
                 switch (c) {
                     case 's':
-                        time = time * 1000; break;
+                        time = time * 1000;
+                        break;
                     case 'm':
-                        time = time * 1000 * 60; break;
+                        time = time * 1000 * 60;
+                        break;
                     case 'h':
-                        time = time * 1000 * 60 * 60; break;
+                        time = time * 1000 * 60 * 60;
+                        break;
                     case 'd':
-                        time = time * 1000 * 60 * 60 * 24; break;
+                        time = time * 1000 * 60 * 60 * 24;
+                        break;
                     case 'w':
-                        time = time * 1000 * 60 * 60 * 24 * 4; break;
+                        time = time * 1000 * 60 * 60 * 24 * 4;
+                        break;
                 }
                 time = (System.currentTimeMillis() - time);
                 return "time >= " + time;

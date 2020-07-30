@@ -14,7 +14,7 @@ public class UndoCommand {
         RequiredArgumentBuilder<ServerCommandSource, String> radius = ArgumentUtil.getRadius();
         RequiredArgumentBuilder<ServerCommandSource, String> block = ArgumentUtil.getBlock();
         RequiredArgumentBuilder<ServerCommandSource, String> time = ArgumentUtil.getTime();
-        time.executes(context -> Rollback.execute(context, true));
+        time.executes(context -> RollbackCommand.execute(context, true));
         block.then(time);
         radius.then(block);
         player.then(radius);

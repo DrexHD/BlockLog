@@ -50,7 +50,7 @@ public class LookupCommand {
             criterias.add("dimensionid = " + BlockLog.getCache().getDimension(WorldUtil.getDimensionNameWithNameSpace(context.getSource().getWorld().getDimension())));
 
             BlockPos pos = context.getSource().getPlayer().getBlockPos();
-            ResultSet resultSet = DBUtil.getDataWhere(parseQuery("", criterias));
+            ResultSet resultSet = DBUtil.getDataWhere(parseQuery("", criterias), false);
             MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
         } catch (SQLException e) {
             e.printStackTrace();

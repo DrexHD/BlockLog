@@ -8,12 +8,12 @@ import java.util.concurrent.TimeUnit;
 
 public class DBUtil {
 
-    public static ResultSet getDataWhere(String criteria) throws SQLException {
+    public static ResultSet getDataWhere(String criteria, boolean asc) throws SQLException {
         StopWatch stopWatch = StopWatch.createStarted();
         Connection connection = BlockLog.getConnection();
         Statement statement = connection.createStatement();
         String where = criteria.equals("") ? "" : " WHERE " + criteria;
-        String query = "SELECT * FROM history" + where + " ORDER BY time DESC";
+        String query = "SELECT * FROM history" + where + " ORDER BY time " + (asc ? "ASC" : "DESC");
         System.out.println(query);
         ResultSet resultSet = statement.executeQuery(query);
         System.out.println("getDataWhere Query took " + stopWatch.getTime(TimeUnit.MILLISECONDS) + "ms");
