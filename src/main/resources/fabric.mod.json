@@ -4,7 +4,7 @@
   "version": "${version}",
 
   "name": "LogBlock",
-  "description": "A mod which logs ores mined",
+  "description": "A simple mod, which logs place & break actions",
   "authors": [
     "DrexHD"
   ],
