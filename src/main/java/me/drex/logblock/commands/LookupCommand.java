@@ -9,7 +9,6 @@ import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
 import me.drex.logblock.util.ArgumentUtil;
 import me.drex.logblock.util.MessageUtil;
-import me.drex.logblock.util.WorldUtil;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.Formatting;
@@ -47,7 +46,6 @@ public class LookupCommand {
             criterias.add(ArgumentUtil.parseBlock(context));
             criterias.add(ArgumentUtil.parseRadius(context));
             criterias.add(ArgumentUtil.parseTime(context));
-            criterias.add("dimensionid = " + BlockLog.getCache().getDimension(WorldUtil.getDimensionNameWithNameSpace(context.getSource().getWorld().getDimension())));
 
             BlockPos pos = context.getSource().getPlayer().getBlockPos();
             ResultSet resultSet = DBUtil.getDataWhere(parseQuery("", criterias), false);

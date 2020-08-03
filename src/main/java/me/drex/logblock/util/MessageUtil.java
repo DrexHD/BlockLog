@@ -72,6 +72,7 @@ public class MessageUtil {
                     boolean placed = resultSet.getBoolean("placed");
                     boolean undone = resultSet.getBoolean("undone");
                     String block = BlockLog.getCache().getBlock(resultSet.getInt(placed ? "blockid" : "pblockid"));
+                    String dimension = BlockLog.getCache().getDimension(resultSet.getInt("dimensionid"));
                     long time = resultSet.getLong("time");
                     long dateDiff = System.currentTimeMillis() - time;
 
@@ -93,7 +94,7 @@ public class MessageUtil {
                             .append(new LiteralText(y + " ")).formatted(Formatting.GRAY)
                             .append(new LiteralText(z + " ")).formatted(Formatting.GRAY);
                     if (undone) text.formatted(Formatting.ITALIC);
-                    text.styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tp @s " + x + " " + y + " " + z)).setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click to teleport!").formatted(Formatting.GREEN))));
+                    text.styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/execute in " + dimension + " run tp @s " + x + " " + y + " " + z)).setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click to teleport!").formatted(Formatting.GREEN))));
                     source.sendFeedback(text, false);
                 }
                 results++;
