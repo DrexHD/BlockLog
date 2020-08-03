@@ -22,7 +22,7 @@ public class Config {
     public String database = "antixray";
 
     @Setting(value = "permissionManager", comment = "Values: luckperms, vanilla")
-    public String permissionManager = "luckperms";
+    public String permissionManager = "vanilla";
 
 
 }

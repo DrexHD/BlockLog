@@ -175,19 +175,19 @@ public class ArgumentUtil {
                 long time = Long.parseLong(numbers);
                 switch (c) {
                     case 's':
-                        time = time * 1000;
+                        time = time;
                         break;
                     case 'm':
-                        time = time * 1000 * 60;
+                        time = time * 60;
                         break;
                     case 'h':
-                        time = time * 1000 * 60 * 60;
+                        time = time * 60 * 60;
                         break;
                     case 'd':
-                        time = time * 1000 * 60 * 60 * 24;
+                        time = time * 60 * 60 * 24;
                         break;
                     case 'w':
-                        time = time * 1000 * 60 * 60 * 24 * 4;
+                        time = time * 60 * 60 * 24 * 4;
                         break;
                 }
                 time = (System.currentTimeMillis() - time);
