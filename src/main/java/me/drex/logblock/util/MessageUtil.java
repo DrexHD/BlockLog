@@ -20,11 +20,6 @@ public class MessageUtil {
     private static HashMap<UUID, Text> titleCache = new HashMap<>();
     private static String uuidRegex = "[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}";
 
-
-    public static void send(ServerCommandSource source, ResultSet resultSet) throws CommandSyntaxException {
-        send(source, resultSet, new LiteralText(""));
-    }
-
     public static void send(ServerCommandSource source, ResultSet resultSet, Text title) throws CommandSyntaxException {
         UUID uuid = source.getPlayer().getUuid();
         resultCache.put(uuid, resultSet);
@@ -66,6 +61,7 @@ public class MessageUtil {
             }
             while (resultSet.next()) {
                 if (results >= from && results <= to) {
+                    int id = resultSet.getInt("id");
                     int x = resultSet.getInt("x");
                     int y = resultSet.getInt("y");
                     int z = resultSet.getInt("z");
@@ -75,7 +71,6 @@ public class MessageUtil {
                     String dimension = BlockLog.getCache().getDimension(resultSet.getInt("dimensionid"));
                     long time = resultSet.getLong("time");
                     long dateDiff = System.currentTimeMillis() - time;
-
                     String entity = BlockLog.getCache().getEntity(resultSet.getInt("entityid"));
                     String cause;
                     if (entity.matches(uuidRegex)) {
@@ -94,7 +89,9 @@ public class MessageUtil {
                             .append(new LiteralText(y + " ")).formatted(Formatting.GRAY)
                             .append(new LiteralText(z + " ")).formatted(Formatting.GRAY);
                     if (undone) text.formatted(Formatting.ITALIC);
-                    text.styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/execute in " + dimension + " run tp @s " + x + " " + y + " " + z)).setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click to teleport!").formatted(Formatting.GREEN))));
+
+
+                    text.styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bl teleport " + id)).setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click to teleport!").formatted(Formatting.GREEN))));
                     source.sendFeedback(text, false);
                 }
                 results++;
@@ -145,7 +142,7 @@ public class MessageUtil {
                 return df2.format(time / 60) + "m";
             }
         } else {
-            return df2.format(time/1000) + "s";
+            return df2.format(time / 1000) + "s";
         }
     }
 

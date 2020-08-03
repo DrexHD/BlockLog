@@ -27,6 +27,7 @@ public class Manager {
         InspectCommand.register(command);
         PageCommand.register(command);
         InfoCommand.register(command);
+        TeleportCommand.register(command);
     }
 
 }
