@@ -159,7 +159,7 @@ public class ArgumentUtil {
             if (blockID == 0) {
                 throw new SimpleCommandExceptionType(new LiteralText("Couldn't find block!")).create();
             } else {
-                return "pblockid = " + blockID + " OR blockid = " + blockID;
+                return "(pblockid = " + blockID + " OR blockid = " + blockID + ")";
             }
         }
     }
