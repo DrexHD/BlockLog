@@ -58,7 +58,7 @@ public class RollbackCommand {
                 criterias.add(ArgumentUtil.parseTime(context));
                 criterias.add("dimensionid = " + BlockLog.getCache().getDimension(WorldUtil.getDimensionNameWithNameSpace(context.getSource().getWorld().getDimension())));
                 criterias.add("undone=" + (undo ? "true" : "false"));
-                ResultSet resultSet = DBUtil.getDataWhere(LookupCommand.parseQuery("", criterias), true);
+                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.parseQuery("", criterias), true);
                 resultSet.last();
                 int size = resultSet.getRow();
                 resultSet.beforeFirst();

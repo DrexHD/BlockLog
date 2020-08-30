@@ -175,19 +175,19 @@ public class ArgumentUtil {
                 long time = Long.parseLong(numbers);
                 switch (c) {
                     case 's':
-                        time = time;
+                        time = 1000 * time;
                         break;
                     case 'm':
-                        time = time * 60;
+                        time = time * 1000 * 60;
                         break;
                     case 'h':
-                        time = time * 60 * 60;
+                        time = time * 1000 * 60 * 60;
                         break;
                     case 'd':
-                        time = time * 60 * 60 * 24;
+                        time = time * 1000 * 60 * 60 * 24;
                         break;
                     case 'w':
-                        time = time * 60 * 60 * 24 * 4;
+                        time = time * 1000 * 60 * 60 * 24 * 4;
                         break;
                 }
                 time = (System.currentTimeMillis() - time);
@@ -195,6 +195,16 @@ public class ArgumentUtil {
             } else {
                 throw new SimpleCommandExceptionType(new LiteralText("Invalid time format!")).create();
             }
+        }
+    }
+
+    public static String parseQuery(String query, ArrayList<String> list) {
+        if (list.isEmpty()) {
+            return query;
+        } else {
+            String s = list.remove(0);
+            query += query.isEmpty() || s.isEmpty() ? s : " AND " + s;
+            return parseQuery(query, list);
         }
     }
 

@@ -39,7 +39,7 @@ public class LookupCommand {
         command.then(lookup);
     }
 
-    private static int lookup(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    private static int lookup(CommandContext<ServerCommandSource> context) {
         CompletableFuture.runAsync(() -> {
             try {
                 ArrayList<String> criterias = new ArrayList<>();
@@ -49,7 +49,7 @@ public class LookupCommand {
                 criterias.add(ArgumentUtil.parseTime(context));
 
                 BlockPos pos = context.getSource().getPlayer().getBlockPos();
-                ResultSet resultSet = DBUtil.getDataWhere(parseQuery("", criterias), false);
+                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.parseQuery("", criterias), false);
                 MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
             } catch (SQLException | CommandSyntaxException e) {
                 context.getSource().sendError(new LiteralText("SQL Exception " + e.getMessage()));
@@ -65,17 +65,6 @@ public class LookupCommand {
     private static String convertSecondsToString(long seconds) {
         double hours = (double) seconds / 3600;
         return df2.format(hours);
-    }
-
-
-    public static String parseQuery(String query, ArrayList<String> list) {
-        if (list.isEmpty()) {
-            return query;
-        } else {
-            String s = list.remove(0);
-            query += query.isEmpty() || s.isEmpty() ? s : " AND " + s;
-            return parseQuery(query, list);
-        }
     }
 
 }

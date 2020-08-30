@@ -17,6 +17,7 @@ import net.minecraft.util.Formatting;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 public class InfoCommand {
@@ -54,18 +55,27 @@ public class InfoCommand {
 
     private static void sendLine(CommandContext<ServerCommandSource> context, String block) throws SQLException, CommandSyntaxException {
         int blockID = BlockLog.getCache().getBlock(block);
-        String userCriteria = ArgumentUtil.parseUser(context);
-        ResultSet remResultSet = DBUtil.getDataWhere(userCriteria + " AND pblockid = " + blockID + " AND " + "placed = false", false);
+        ArrayList<String> remCriterias = new ArrayList<>();
+        remCriterias.add(ArgumentUtil.parseUser(context));
+        remCriterias.add("pblockid = "  + blockID);
+        remCriterias.add("placed = false");
+
+        ArrayList<String> plcCriteria = new ArrayList<>();
+        plcCriteria.add(ArgumentUtil.parseUser(context));
+        plcCriteria.add("blockid = "  + blockID);
+        plcCriteria.add("placed = true");
+
+        ResultSet remResultSet = DBUtil.getDataWhere(ArgumentUtil.parseQuery("", remCriterias), false);
         remResultSet.last();
         int rem = remResultSet.getRow();
-        ResultSet plcResultSet = DBUtil.getDataWhere(userCriteria + " AND blockid = " + blockID + " AND " + "placed = true", false);
+        ResultSet plcResultSet = DBUtil.getDataWhere(ArgumentUtil.parseQuery("", plcCriteria), false);
         plcResultSet.last();
         int plc = plcResultSet.getRow();
         String input = StringArgumentType.getString(context, "user");
         MutableText text2 = new LiteralText("")
         .append(new LiteralText("* " + block.split(":")[1].replace("_ore", "") + ": ").formatted(Formatting.GRAY))
         .append(String.valueOf((rem-plc))).formatted(Formatting.YELLOW)
-        .styled(style -> style.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("* Placed: ").formatted(Formatting.GRAY)
+        .styled(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("* Placed: ").formatted(Formatting.GRAY)
                 .append(new LiteralText(String.valueOf(plc)).formatted(Formatting.GREEN))
                 .append(new LiteralText("\n* Mined: ").formatted(Formatting.GRAY))
                 .append(new LiteralText(String.valueOf(rem)).formatted(Formatting.RED))))

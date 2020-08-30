@@ -91,7 +91,7 @@ public class MessageUtil {
                     if (undone) text.formatted(Formatting.ITALIC);
 
 
-                    text.styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bl teleport " + id)).setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click to teleport!").formatted(Formatting.GREEN))));
+                    text.styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bl teleport " + id)).withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click to teleport!").formatted(Formatting.GREEN))));
                     source.sendFeedback(text, false);
                 }
                 results++;
@@ -99,13 +99,13 @@ public class MessageUtil {
             MutableText text = new LiteralText("");
             if (page > 0) {
                 text.append(new LiteralText("||------------").formatted(Formatting.WHITE))
-                        .append(new LiteralText("<<-- ").formatted(Formatting.GRAY).styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bl page " + (page - 1))).setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click!").formatted(Formatting.GREEN)))));
+                        .append(new LiteralText("<<-- ").formatted(Formatting.GRAY).styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bl page " + (page - 1))).withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click!").formatted(Formatting.GREEN)))));
             } else {
                 text.append(new LiteralText("||---------------- ").formatted(Formatting.WHITE));
             }
             text.append(new LiteralText((page + 1) + " / " + (maxPage + 1)).formatted(Formatting.GRAY));
             if (page < maxPage) {
-                text.append(new LiteralText(" -->>").formatted(Formatting.GRAY).styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bl page " + (page + 1))).setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click!").formatted(Formatting.GREEN)))))
+                text.append(new LiteralText(" -->>").formatted(Formatting.GRAY).styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bl page " + (page + 1))).withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click!").formatted(Formatting.GREEN)))))
                         .append(new LiteralText("------------||").formatted(Formatting.WHITE));
             } else {
                 text.append(new LiteralText(" ----------------||").formatted(Formatting.WHITE));
