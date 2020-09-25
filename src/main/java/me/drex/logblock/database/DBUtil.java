@@ -13,7 +13,7 @@ public class DBUtil {
         Connection connection = BlockLog.getConnection();
         Statement statement = connection.createStatement();
         String where = criteria.equals("") ? "" : " WHERE " + criteria;
-        String query = "SELECT * FROM history" + where + " ORDER BY time " + (asc ? "ASC" : "DESC");
+        String query = "SELECT * FROM history" + where + " ORDER BY time " + (asc ? "ASC" : "DESC") + " LIMIT 500";
         System.out.println(query);
         ResultSet resultSet = statement.executeQuery(query);
         System.out.println("getDataWhere Query took " + stopWatch.getTime(TimeUnit.MILLISECONDS) + "ms");

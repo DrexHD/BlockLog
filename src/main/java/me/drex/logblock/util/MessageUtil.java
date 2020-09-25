@@ -75,7 +75,7 @@ public class MessageUtil {
                     String cause;
                     if (entity.matches(uuidRegex)) {
                         GameProfile profile = source.getMinecraftServer().getUserCache().getByUuid(UUID.fromString(entity));
-                        cause = profile.getName();
+                        cause = profile == null ? entity : profile.getName();
                     } else {
                         cause = entity;
                     }

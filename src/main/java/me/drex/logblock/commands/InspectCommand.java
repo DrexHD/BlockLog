@@ -17,6 +17,7 @@ import net.minecraft.util.math.BlockPos;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class InspectCommand {
 
@@ -39,15 +40,17 @@ public class InspectCommand {
         return 1;
     }
 
-    private static int lookup(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        try {
-            BlockPos pos = BlockPosArgumentType.getBlockPos(context, "blockpos");
-            String criteria = "x = " + pos.getX() + " AND " + "y = " + pos.getY() + " AND " + "z = " + pos.getZ();
-            ResultSet resultSet = DBUtil.getDataWhere(criteria, false);
-            MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText( pos.getX() + " " + pos.getY() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    private static int lookup(CommandContext<ServerCommandSource> context) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                BlockPos pos = BlockPosArgumentType.getBlockPos(context, "blockpos");
+                String criteria = "x = " + pos.getX() + " AND " + "y = " + pos.getY() + " AND " + "z = " + pos.getZ();
+                ResultSet resultSet = DBUtil.getDataWhere(criteria, false);
+                MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText( pos.getX() + " " + pos.getY() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
+            } catch (SQLException | CommandSyntaxException e) {
+                e.printStackTrace();
+            }
+        });
 
         return 1;
     }
