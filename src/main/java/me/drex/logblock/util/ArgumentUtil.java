@@ -198,13 +198,13 @@ public class ArgumentUtil {
         }
     }
 
-    public static String parseQuery(String query, ArrayList<String> list) {
+    public static String formatQuery(String query, ArrayList<String> list, String connector) {
         if (list.isEmpty()) {
             return query;
         } else {
             String s = list.remove(0);
-            query += query.isEmpty() || s.isEmpty() ? s : " AND " + s;
-            return parseQuery(query, list);
+            query += query.isEmpty() || s.isEmpty() ? s : " " + connector + " " + s;
+            return formatQuery(query, list, connector);
         }
     }
 

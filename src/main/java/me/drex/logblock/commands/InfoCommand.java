@@ -8,6 +8,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
 import me.drex.logblock.util.ArgumentUtil;
+import me.drex.logblock.util.LoadingTimer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
@@ -17,7 +18,7 @@ import net.minecraft.util.Formatting;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class InfoCommand {
@@ -31,56 +32,72 @@ public class InfoCommand {
         command.then(info);
     }
 
-    private static int execute(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        String input = StringArgumentType.getString(context, "user");
-        MutableText prefix = new LiteralText("\n-----").formatted(Formatting.WHITE).append(new LiteralText(" BlockLog ( " + input + " ) ").formatted(Formatting.DARK_AQUA)).append(new LiteralText("-----").formatted(Formatting.WHITE));
-        context.getSource().sendFeedback(prefix, false);
+    private static int execute(CommandContext<ServerCommandSource> context) {
         CompletableFuture.runAsync(() -> {
             try {
-                sendLine(context, "minecraft:diamond_ore");
-                sendLine(context, "minecraft:ancient_debris");
-                sendLine(context, "minecraft:gold_ore");
-//                sendLine(context, "minecraft:iron_ore");
-                sendLine(context, "minecraft:redstone_ore");
-                sendLine(context, "minecraft:lapis_ore");
-                sendLine(context, "minecraft:emerald_ore");
-//                sendLine(context, "minecraft:coal_ore");
-                sendLine(context, "minecraft:nether_quartz_ore");
+                sendInfo(context);
             } catch (SQLException | CommandSyntaxException e) {
+                context.getSource().sendError(new LiteralText("Error: " + e.getMessage()));
                 e.printStackTrace();
             }
         });
         return 1;
     }
 
-    private static void sendLine(CommandContext<ServerCommandSource> context, String block) throws SQLException, CommandSyntaxException {
-        int blockID = BlockLog.getCache().getBlock(block);
-        ArrayList<String> remCriterias = new ArrayList<>();
-        remCriterias.add(ArgumentUtil.parseUser(context));
-        remCriterias.add("pblockid = "  + blockID);
-        remCriterias.add("placed = false");
 
-        ArrayList<String> plcCriteria = new ArrayList<>();
-        plcCriteria.add(ArgumentUtil.parseUser(context));
-        plcCriteria.add("blockid = "  + blockID);
-        plcCriteria.add("placed = true");
+    private static void sendInfo(CommandContext<ServerCommandSource> context) throws SQLException, CommandSyntaxException {
+        List<String> blocks = Arrays.asList("minecraft:diamond_ore", "minecraft:ancient_debris", "minecraft:gold_ore", "minecraft:redstone_ore", "minecraft:lapis_ore", "minecraft:emerald_ore", "minecraft:nether_quartz_ore");
+        Map<Integer, Integer> blocksPlaced = new HashMap<>();
+        Map<Integer, Integer> blocksDestroyed = new HashMap<>();
+        ArrayList<String> criteria = new ArrayList<>();
+        criteria.add(ArgumentUtil.parseUser(context));
+        ArrayList<String> blockCriteria = new ArrayList<>();
+        for (String block : blocks) {
+            int blockID = BlockLog.getCache().getBlock(block);
+            blocksPlaced.put(blockID, 0);
+            blocksDestroyed.put(blockID, 0);
+            blockCriteria.add("pblockid = " + blockID + " OR blockid = " + blockID);
+        }
+        criteria.add(ArgumentUtil.formatQuery("", blockCriteria, "OR"));
+        LoadingTimer lt = new LoadingTimer(context.getSource().getPlayer());
+        ResultSet rs = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", criteria, "AND"), false);
+        lt.stop();
+        while (rs.next()) {
+            {
+                int blockID = rs.getInt("blockid");
+                if (blocksPlaced.containsKey(blockID)) {
+                    int i = blocksPlaced.get(blockID);
+                    i++;
+                    blocksPlaced.put(blockID, i);
+                }
+            }
+            {
+                int blockID = rs.getInt("pblockid");
+                if (blocksDestroyed.containsKey(blockID)) {
+                    int i = blocksDestroyed.get(blockID);
+                    i++;
+                    blocksDestroyed.put(blockID, i);
+                }
+            }
 
-        ResultSet remResultSet = DBUtil.getDataWhere(ArgumentUtil.parseQuery("", remCriterias), false);
-        remResultSet.last();
-        int rem = remResultSet.getRow();
-        ResultSet plcResultSet = DBUtil.getDataWhere(ArgumentUtil.parseQuery("", plcCriteria), false);
-        plcResultSet.last();
-        int plc = plcResultSet.getRow();
+        }
         String input = StringArgumentType.getString(context, "user");
-        MutableText text2 = new LiteralText("")
-        .append(new LiteralText("* " + block.split(":")[1].replace("_ore", "") + ": ").formatted(Formatting.GRAY))
-        .append(String.valueOf((rem-plc))).formatted(Formatting.YELLOW)
-        .styled(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("* Placed: ").formatted(Formatting.GRAY)
-                .append(new LiteralText(String.valueOf(plc)).formatted(Formatting.GREEN))
-                .append(new LiteralText("\n* Mined: ").formatted(Formatting.GRAY))
-                .append(new LiteralText(String.valueOf(rem)).formatted(Formatting.RED))))
-                .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/bl lookup " + input + " -global " + block.split(":")[1] + " -always")));
-                context.getSource().sendFeedback(text2, false);
+        MutableText prefix = new LiteralText("\n-----").formatted(Formatting.WHITE).append(new LiteralText(" BlockLog ( " + input + " ) ").formatted(Formatting.DARK_AQUA)).append(new LiteralText("-----").formatted(Formatting.WHITE));
+        context.getSource().sendFeedback(prefix, false);
+        for (String block : blocks) {
+            int blockID = BlockLog.getCache().getBlock(block);
+            int plc = blocksPlaced.get(blockID);
+            int rem = blocksDestroyed.get(blockID);
+            MutableText text2 = new LiteralText("")
+                    .append(new LiteralText("* " + block.split(":")[1].replace("_ore", "") + ": ").formatted(Formatting.GRAY))
+                    .append(String.valueOf((rem-plc))).formatted(Formatting.YELLOW)
+                    .styled(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("* Placed: ").formatted(Formatting.GRAY)
+                            .append(new LiteralText(String.valueOf(plc)).formatted(Formatting.GREEN))
+                            .append(new LiteralText("\n* Mined: ").formatted(Formatting.GRAY))
+                            .append(new LiteralText(String.valueOf(rem)).formatted(Formatting.RED))))
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/bl lookup " + input + " -global " + block.split(":")[1] + " -always")));
+            context.getSource().sendFeedback(text2, false);
+        }
     }
 
 

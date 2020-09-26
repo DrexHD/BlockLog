@@ -7,6 +7,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
 import me.drex.logblock.util.ArgumentUtil;
+import me.drex.logblock.util.LoadingTimer;
 import me.drex.logblock.util.MessageUtil;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.LiteralText;
@@ -49,7 +50,9 @@ public class LookupCommand {
                 criterias.add(ArgumentUtil.parseTime(context));
 
                 BlockPos pos = context.getSource().getPlayer().getBlockPos();
-                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.parseQuery("", criterias), false);
+                LoadingTimer lt = new LoadingTimer(context.getSource().getPlayer());
+                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", criterias, "AND"), false);
+                lt.stop();
                 MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
             } catch (SQLException | CommandSyntaxException e) {
                 context.getSource().sendError(new LiteralText("SQL Exception " + e.getMessage()));

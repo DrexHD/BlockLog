@@ -8,6 +8,7 @@ import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
 import me.drex.logblock.util.ArgumentUtil;
 import me.drex.logblock.util.BlockStateUtil;
+import me.drex.logblock.util.LoadingTimer;
 import me.drex.logblock.util.WorldUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -58,7 +59,9 @@ public class RollbackCommand {
                 criterias.add(ArgumentUtil.parseTime(context));
                 criterias.add("dimensionid = " + BlockLog.getCache().getDimension(WorldUtil.getDimensionNameWithNameSpace(context.getSource().getWorld().getDimension())));
                 criterias.add("undone=" + (undo ? "true" : "false"));
-                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.parseQuery("", criterias), true);
+                LoadingTimer lt = new LoadingTimer(context.getSource().getPlayer());
+                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", criterias, "AND"), true);
+                lt.stop();
                 resultSet.last();
                 int size = resultSet.getRow();
                 resultSet.beforeFirst();

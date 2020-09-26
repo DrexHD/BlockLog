@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
+import me.drex.logblock.util.LoadingTimer;
 import me.drex.logblock.util.MessageUtil;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.PosArgument;
@@ -45,7 +46,9 @@ public class InspectCommand {
             try {
                 BlockPos pos = BlockPosArgumentType.getBlockPos(context, "blockpos");
                 String criteria = "x = " + pos.getX() + " AND " + "y = " + pos.getY() + " AND " + "z = " + pos.getZ();
+                LoadingTimer lt = new LoadingTimer(context.getSource().getPlayer());
                 ResultSet resultSet = DBUtil.getDataWhere(criteria, false);
+                lt.stop();
                 MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText( pos.getX() + " " + pos.getY() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
             } catch (SQLException | CommandSyntaxException e) {
                 e.printStackTrace();
