@@ -9,11 +9,15 @@ import java.util.concurrent.TimeUnit;
 public class DBUtil {
 
     public static ResultSet getDataWhere(String criteria, boolean asc) throws SQLException {
+        return getDataWhere(criteria, asc, -1);
+    }
+
+        public static ResultSet getDataWhere(String criteria, boolean asc, int limit) throws SQLException {
         StopWatch stopWatch = StopWatch.createStarted();
         Connection connection = BlockLog.getConnection();
         Statement statement = connection.createStatement();
         String where = criteria.equals("") ? "" : " WHERE " + criteria;
-        String query = "SELECT * FROM history" + where + " ORDER BY time " + (asc ? "ASC" : "DESC")/* + " LIMIT 500"*/;
+        String query = "SELECT * FROM history" + where + " ORDER BY time " + (asc ? "ASC" : "DESC") + (limit == -1 ? "" : " LIMIT " + limit);
         System.out.println(query);
         ResultSet resultSet = statement.executeQuery(query);
         System.out.println("getDataWhere Query took " + stopWatch.getTime(TimeUnit.MILLISECONDS) + "ms");

@@ -42,22 +42,22 @@ public class LookupCommand {
 
     private static int lookup(CommandContext<ServerCommandSource> context) {
         CompletableFuture.runAsync(() -> {
+            LoadingTimer lt = null;
             try {
                 ArrayList<String> criterias = new ArrayList<>();
                 criterias.add(ArgumentUtil.parseUser(context));
                 criterias.add(ArgumentUtil.parseBlock(context));
                 criterias.add(ArgumentUtil.parseRadius(context));
                 criterias.add(ArgumentUtil.parseTime(context));
-
                 BlockPos pos = context.getSource().getPlayer().getBlockPos();
-                LoadingTimer lt = new LoadingTimer(context.getSource().getPlayer());
-                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", criterias, "AND"), false);
+                lt = new LoadingTimer(context.getSource().getPlayer());;
+                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", criterias, "AND"), false, 250);
                 lt.stop();
                 MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
             } catch (SQLException | CommandSyntaxException e) {
-                context.getSource().sendError(new LiteralText("SQL Exception " + e.getMessage()));
+                context.getSource().sendError(new LiteralText(e.getMessage()));
+                if (lt != null) lt.stop();
                 e.printStackTrace();
-//            throw new SimpleCommandExceptionType(new LiteralText("SQL Exception " + e.getMessage())).create();
             }
         });
         return 1;
