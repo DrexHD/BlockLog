@@ -21,8 +21,12 @@ public class PageCommand {
         command.then(page);
     }
 
-    private static int execute(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        MessageUtil.sendPage(context.getSource(), 5, IntegerArgumentType.getInteger(context, "i"));
+    private static int execute(CommandContext<ServerCommandSource> context) {
+        try {
+            MessageUtil.sendPage(context.getSource(), 5, IntegerArgumentType.getInteger(context, "i"));
+        } catch (CommandSyntaxException e) {
+            e.printStackTrace();
+        }
         return 1;
     }
 
