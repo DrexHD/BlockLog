@@ -23,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.CompletableFuture;
 
 @Mixin(ServerPlayerInteractionManager.class)
 public class ServerPlayerInteractionManagerMixin {
@@ -48,11 +49,17 @@ public class ServerPlayerInteractionManagerMixin {
 
 
     @Inject(method = "processBlockBreakingAction", at = @At(value = "HEAD"))
-    private void BlockLogger$clickBlock(BlockPos pos, PlayerActionC2SPacket.Action action, Direction direction, int worldHeight, CallbackInfo ci) throws SQLException, CommandSyntaxException {
+    private void BlockLogger$clickBlock(BlockPos pos, PlayerActionC2SPacket.Action action, Direction direction, int worldHeight, CallbackInfo ci) {
         if (this.player.getMainHandStack().getItem() == Items.AIR && BlockLog.isInspecting(this.player.getUuid())) {
-            String criteria = "x = " + pos.getX() + " AND " + "y = " + pos.getY() + " AND " + "z = " + pos.getZ();
-            ResultSet resultSet = DBUtil.getDataWhere(criteria, false);
-            MessageUtil.send(this.player.getCommandSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
+            CompletableFuture.runAsync(() -> {
+                try {
+                    String criteria = "x = " + pos.getX() + " AND " + "y = " + pos.getY() + " AND " + "z = " + pos.getZ();
+                    ResultSet resultSet = DBUtil.getDataWhere(criteria, false);
+                    MessageUtil.send(this.player.getCommandSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
+                } catch (CommandSyntaxException | SQLException e) {
+                    e.printStackTrace();
+                }
+            });
         }
     }
 }
