@@ -50,7 +50,7 @@ public class InfoCommand {
         Map<Integer, Integer> blocksPlaced = new HashMap<>();
         Map<Integer, Integer> blocksDestroyed = new HashMap<>();
         ArrayList<String> criteria = new ArrayList<>();
-        criteria.add(ArgumentUtil.parseUser(context));
+        criteria.add(ArgumentUtil.parseUser(context)+ " (");
         ArrayList<String> blockCriteria = new ArrayList<>();
         for (String block : blocks) {
             int blockID = BlockLog.getCache().getBlock(block);
@@ -60,7 +60,7 @@ public class InfoCommand {
         }
         criteria.add(ArgumentUtil.formatQuery("", blockCriteria, "OR"));
         LoadingTimer lt = new LoadingTimer(context.getSource().getPlayer());
-        ResultSet rs = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", criteria, "AND"), false);
+        ResultSet rs = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", criteria, "AND") + ")", false);
         lt.stop();
         while (rs.next()) {
             {
