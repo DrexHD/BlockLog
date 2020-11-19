@@ -12,22 +12,26 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.List;
 
 @Mixin(Explosion.class)
 public class ExplosionMixin {
 
-    @Shadow @Final
-    private Entity entity;
+    @Shadow @Final private List<BlockPos> affectedBlocks;
+
+    @Shadow @Final private Entity entity;
 
     @Shadow @Final private World world;
 
-
-    @Redirect(method = "affectWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/BlockState;", ordinal = 0))
-    private BlockState onBlockExplosion(World world, BlockPos pos) {
-        BlockState blockState = this.world.getBlockState(pos);
-        BlockLog.getCache().addEntryAsync("-" + EntityUtil.toName(this.entity.getType()), pos, world.getDimension(), Blocks.AIR.getDefaultState(), blockState, System.currentTimeMillis(), false);
-        return blockState;
+    @Inject(method = "affectWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/explosion/Explosion;affectedBlocks:Ljava/util/List;"))
+    private void onExplosion(boolean bl, CallbackInfo ci) {
+        this.affectedBlocks.forEach(pos -> {
+            BlockState blockState = this.world.getBlockState(pos);
+            BlockLog.getCache().addEntryAsync("-" + EntityUtil.toName(this.entity.getType()), pos, this.world.getDimension(), Blocks.AIR.getDefaultState(), blockState, System.currentTimeMillis(), false);
+        });
     }
 
 
