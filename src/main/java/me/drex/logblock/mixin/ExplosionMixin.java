@@ -1,10 +1,12 @@
 package me.drex.logblock.mixin;
 
-import me.drex.logblock.BlockLog;
+import me.drex.logblock.database.entry.HistoryEntry;
+import me.drex.logblock.util.BlockUtil;
 import me.drex.logblock.util.EntityUtil;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.explosion.Explosion;
@@ -20,17 +22,23 @@ import java.util.List;
 @Mixin(Explosion.class)
 public class ExplosionMixin {
 
-    @Shadow @Final private List<BlockPos> affectedBlocks;
+    @Shadow
+    @Final
+    private List<BlockPos> affectedBlocks;
 
-    @Shadow @Final private Entity entity;
+    @Shadow
+    @Final
+    private Entity entity;
 
-    @Shadow @Final private World world;
+    @Shadow
+    @Final
+    private World world;
 
-    @Inject(method = "affectWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/explosion/Explosion;affectedBlocks:Ljava/util/List;"))
+    @Inject(method = "affectWorld", at = @At(value = "HEAD"))
     private void onExplosion(boolean bl, CallbackInfo ci) {
         this.affectedBlocks.forEach(pos -> {
             BlockState blockState = this.world.getBlockState(pos);
-            BlockLog.getCache().addEntryAsync("-" + EntityUtil.toName(this.entity.getType()), pos, this.world.getDimension(), Blocks.AIR.getDefaultState(), blockState, System.currentTimeMillis(), false);
+            new HistoryEntry("-" + EntityUtil.toName(this.entity.getType()), this.world.getDimension(), pos, blockState, Blocks.AIR.getDefaultState(), BlockUtil.getTagAt(world, pos), new CompoundTag(), System.currentTimeMillis(), false).saveAsync();
         });
     }
 

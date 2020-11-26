@@ -9,8 +9,11 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBCache;
+import me.drex.logblock.database.entry.BlockEntry;
+import me.drex.logblock.database.entry.DimensionEntry;
+import me.drex.logblock.database.entry.EntityEntry;
 import net.minecraft.block.Block;
-import net.minecraft.server.command.CommandSource;
+import net.minecraft.command.CommandSource;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.LiteralText;
@@ -20,6 +23,7 @@ import net.minecraft.util.registry.Registry;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
 import static net.minecraft.server.command.CommandManager.argument;
@@ -60,7 +64,7 @@ public class ArgumentUtil {
         List<String> strings = new ArrayList<>();
         strings.add("-all");
         for (Block block : Registry.BLOCK) {
-            strings.add(BlockUtil.toNameNoNameSpace(block));
+            strings.add(BlockUtil.toName(block));
         }
         return CommandSource.suggestMatching(strings, builder);
     };
@@ -97,6 +101,7 @@ public class ArgumentUtil {
         return argument("time", word()).suggests(TIME);
     }
 
+    @Deprecated
     public static String parseUser(CommandContext<ServerCommandSource> context) throws SQLException, CommandSyntaxException {
         String input = StringArgumentType.getString(context, "user");
         if (input.equals("-everyone")) {
@@ -115,20 +120,86 @@ public class ArgumentUtil {
                     throw new SimpleCommandExceptionType(new LiteralText("Couldn't find user!")).create();
                 }
             }
-            return "entityid = " + userID;
+            return HistoryColumn.ENTITYID + " = " + userID;
         }
     }
 
-    public static GameProfile parsePlayer(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    public static void parseUser(CommandContext<ServerCommandSource> context, Consumer<String> consumer) {
         String input = StringArgumentType.getString(context, "user");
-        GameProfile profile = BlockLog.server.getUserCache().findByName(input);
-        if (profile == null || !profile.isComplete()) {
-            throw new SimpleCommandExceptionType(new LiteralText("Couldn't find player!")).create();
+        if (input.equals("-everyone")) {
+            consumer.accept("");
+        } else {
+            EntityEntry.of(EntityEntry.class, input, entry -> consumer.accept(HistoryColumn.ENTITYID + " = " + entry.getID()));
         }
-        return profile;
     }
 
+    public static void parseBlock(CommandContext<ServerCommandSource> context, Consumer<String> consumer) {
+        String input = StringArgumentType.getString(context, "block");
+        if (input.equals("-all")) {
+            consumer.accept("");
+        } else {
+            BlockEntry.of(BlockEntry.class, "minecraft:" + input, entry -> consumer.accept("(" + HistoryColumn.PBLOCKID + " = " + entry.getID() + " OR " + HistoryColumn.BLOCKID + " = " + entry.getID() + ")"));
+        }
+    }
 
+    public static void parseRadius(CommandContext<ServerCommandSource> context, Consumer<String> consumer) throws CommandSyntaxException {
+        String input = StringArgumentType.getString(context, "radius");
+        BlockPos pos = context.getSource().getPlayer().getBlockPos();
+        if (input.equals("-global")) {
+            consumer.accept("");
+        } else {
+            int radius;
+            try {
+                radius = Integer.parseInt(input);
+            } catch (NumberFormatException e) {
+                throw new SimpleCommandExceptionType(new LiteralText("Radius must be an integer!")).create();
+            }
+            if (radius < 1) {
+                throw new SimpleCommandExceptionType(new LiteralText("Radius must be larger than 0!")).create();
+            }
+            consumer.accept(HistoryColumn.XPOS + " BETWEEN " + (pos.getX() - radius) + " AND " + (pos.getX() + radius) + " AND " + HistoryColumn.YPOS + " BETWEEN " + 0 + " AND " + 256 + " AND " + HistoryColumn.XPOS + " BETWEEN " + (pos.getZ() - radius) + " AND " + (pos.getZ() + radius));
+        }
+    }
+
+    public static void parseTime(CommandContext<ServerCommandSource> context, Consumer<String> consumer) throws CommandSyntaxException {
+        String input = StringArgumentType.getString(context, "time");
+        if (input.equals("-always")) {
+            consumer.accept("");
+        } else {
+            if (input.matches("[\\d]+(s|m|h|d|w)")) {
+                String numbers = input.substring(0, input.length() - 1);
+                char c = input.substring(input.length() - 1).charAt(0);
+                long time = Long.parseLong(numbers);
+                switch (c) {
+                    case 's':
+                        time = 1000 * time;
+                        break;
+                    case 'm':
+                        time = time * 1000 * 60;
+                        break;
+                    case 'h':
+                        time = time * 1000 * 60 * 60;
+                        break;
+                    case 'd':
+                        time = time * 1000 * 60 * 60 * 24;
+                        break;
+                    case 'w':
+                        time = time * 1000 * 60 * 60 * 24 * 4;
+                        break;
+                }
+                time = (System.currentTimeMillis() - time);
+                consumer.accept("time >= " + time);
+            } else {
+                throw new SimpleCommandExceptionType(new LiteralText("Invalid time format!")).create();
+            }
+        }
+    }
+
+    public static void parseDimension(CommandContext<ServerCommandSource> context, Consumer<String> consumer) throws CommandSyntaxException {
+        DimensionEntry.of(DimensionEntry.class, WorldUtil.getDimensionNameSpace(context.getSource().getWorld().getDimension()), entry -> {consumer.accept(HistoryColumn.DIMENSIONID + " = " + entry.getID());});
+    }
+
+    @Deprecated
     public static String parseRadius(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         String input = StringArgumentType.getString(context, "radius");
         if (input.equals("-global")) {
@@ -146,9 +217,19 @@ public class ArgumentUtil {
         if (radius < 1) {
             throw new SimpleCommandExceptionType(new LiteralText("Radius must be larger than 0!")).create();
         }
-        return "x BETWEEN " + (pos.getX() - radius) + " AND " + (pos.getX() + radius) + " AND " + " y BETWEEN " + 0 + " AND " + 256 + " AND " + " z BETWEEN " + (pos.getZ() - radius) + " AND " + (pos.getZ() + radius);
+        return HistoryColumn.XPOS + " BETWEEN " + (pos.getX() - radius) + " AND " + (pos.getX() + radius) + " AND " + HistoryColumn.YPOS + " BETWEEN " + 0 + " AND " + 256 + " AND " + HistoryColumn.XPOS + " BETWEEN " + (pos.getZ() - radius) + " AND " + (pos.getZ() + radius);
     }
 
+    public static GameProfile parsePlayer(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        String input = StringArgumentType.getString(context, "user");
+        GameProfile profile = BlockLog.server.getUserCache().findByName(input);
+        if (profile == null || !profile.isComplete()) {
+            throw new SimpleCommandExceptionType(new LiteralText("Couldn't find player!")).create();
+        }
+        return profile;
+    }
+
+    @Deprecated
     public static String parseBlock(CommandContext<ServerCommandSource> context) throws SQLException, CommandSyntaxException {
         String input = StringArgumentType.getString(context, "block");
         if (input.equals("-all")) {
@@ -159,11 +240,12 @@ public class ArgumentUtil {
             if (blockID == 0) {
                 throw new SimpleCommandExceptionType(new LiteralText("Couldn't find block!")).create();
             } else {
-                return "(pblockid = " + blockID + " OR blockid = " + blockID + ")";
+                return "(" + HistoryColumn.PBLOCKID + " = " + blockID + " OR " + HistoryColumn.BLOCKID + " = " + blockID + ")";
             }
         }
     }
 
+    @Deprecated
     public static String parseTime(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         String input = StringArgumentType.getString(context, "time");
         if (input.equals("-always")) {

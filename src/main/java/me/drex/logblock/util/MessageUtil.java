@@ -61,17 +61,17 @@ public class MessageUtil {
             }
             while (resultSet.next()) {
                 if (results >= from && results <= to) {
-                    int id = resultSet.getInt("id");
-                    int x = resultSet.getInt("x");
-                    int y = resultSet.getInt("y");
-                    int z = resultSet.getInt("z");
-                    boolean placed = resultSet.getBoolean("placed");
-                    boolean undone = resultSet.getBoolean("undone");
-                    String block = BlockLog.getCache().getBlock(resultSet.getInt(placed ? "blockid" : "pblockid"));
-                    String dimension = BlockLog.getCache().getDimension(resultSet.getInt("dimensionid"));
-                    long time = resultSet.getLong("time");
+                    int id = resultSet.getInt(HistoryColumn.ID.toString());
+                    int x = resultSet.getInt(HistoryColumn.XPOS.toString());
+                    int y = resultSet.getInt(HistoryColumn.YPOS.toString());
+                    int z = resultSet.getInt(HistoryColumn.ZPOS.toString());
+                    boolean placed = resultSet.getBoolean(HistoryColumn.PLACED.toString());
+                    boolean undone = resultSet.getBoolean(HistoryColumn.UNDONE.toString());
+                    String block = BlockLog.getCache().getBlock(resultSet.getInt(placed ? HistoryColumn.BLOCKID.toString() : HistoryColumn.PBLOCKID.toString()));
+                    String dimension = BlockLog.getCache().getDimension(resultSet.getInt(HistoryColumn.DIMENSIONID.toString()));
+                    long time = resultSet.getLong(HistoryColumn.TIME.toString());
                     long dateDiff = System.currentTimeMillis() - time;
-                    String entity = BlockLog.getCache().getEntity(resultSet.getInt("entityid"));
+                    String entity = BlockLog.getCache().getEntity(resultSet.getInt(HistoryColumn.ENTITYID.toString()));
                     String cause;
                     if (entity.matches(uuidRegex)) {
                         GameProfile profile = source.getMinecraftServer().getUserCache().getByUuid(UUID.fromString(entity));

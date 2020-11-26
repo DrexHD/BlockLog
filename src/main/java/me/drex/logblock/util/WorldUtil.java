@@ -32,7 +32,7 @@ public class WorldUtil {
         return getRegistry(dimensionType).getValue().getPath();
     }
 
-    public static String getDimensionNameWithNameSpace(DimensionType dimensionType) {
+    public static String getDimensionNameSpace(DimensionType dimensionType) {
         return getRegistry(dimensionType).getValue().getNamespace() + ":" + getDimensionName(dimensionType);
     }
 

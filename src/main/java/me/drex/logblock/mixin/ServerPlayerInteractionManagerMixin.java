@@ -3,10 +3,14 @@ package me.drex.logblock.mixin;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
+import me.drex.logblock.database.entry.HistoryEntry;
+import me.drex.logblock.util.BlockUtil;
+import me.drex.logblock.util.HistoryColumn;
 import me.drex.logblock.util.MessageUtil;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.Items;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.network.ServerPlayerInteractionManager;
@@ -35,16 +39,18 @@ public class ServerPlayerInteractionManagerMixin {
     public ServerWorld world;
 
     public BlockState blockstate;
+    public CompoundTag tag;
 
 
     @Inject(method = "processBlockBreakingAction", at = @At(value = "HEAD"))
     private void BlockLogger$getBlock(BlockPos pos, PlayerActionC2SPacket.Action action, Direction direction, int worldHeight, CallbackInfo ci) {
         this.blockstate = this.world.getBlockState(pos);
+        tag = BlockUtil.getTagAt(this.world, pos);
     }
 
     @Inject(method = "finishMining", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerPlayNetworkHandler;sendPacket(Lnet/minecraft/network/Packet;)V"))
     private void BlockLogger$destroyBlock(BlockPos pos, PlayerActionC2SPacket.Action action, String reason, CallbackInfo ci) {
-        BlockLog.getCache().addEntryAsync(this.player.getUuid().toString(), pos, this.world.getDimension(), Blocks.AIR.getDefaultState(), blockstate, System.currentTimeMillis(), false);
+        new HistoryEntry(this.player.getUuidAsString(), this.world.getDimension(), pos, blockstate, Blocks.AIR.getDefaultState(), BlockUtil.getTagAt(this.world, pos), tag, System.currentTimeMillis(), false).saveAsync();
     }
 
 
@@ -53,7 +59,7 @@ public class ServerPlayerInteractionManagerMixin {
         if (this.player.getMainHandStack().getItem() == Items.AIR && BlockLog.isInspecting(this.player.getUuid())) {
             CompletableFuture.runAsync(() -> {
                 try {
-                    String criteria = "x = " + pos.getX() + " AND " + "y = " + pos.getY() + " AND " + "z = " + pos.getZ();
+                    String criteria = HistoryColumn.XPOS + " = " + pos.getX() + " AND " + HistoryColumn.YPOS + " = " + pos.getY() + " AND " + HistoryColumn.ZPOS + "= " + pos.getZ();
                     ResultSet resultSet = DBUtil.getDataWhere(criteria, false);
                     MessageUtil.send(this.player.getCommandSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
                 } catch (CommandSyntaxException | SQLException e) {

@@ -8,7 +8,7 @@ public abstract class WorldMixin {
 
 /*    @Inject(method = "onBlockChanged", at = @At(value = "HEAD"))
     private void onBlockChange(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
-        System.out.println(pos.getX() + " " + pos.getY() + " " + pos.getZ() + " " + BlockUtil.toName(oldBlock.getBlock()) + " -> " + BlockUtil.toName(newBlock.getBlock()));
+      //System.out.println(pos.getX() + " " + pos.getY() + " " + pos.getZ() + " " + BlockUtil.toName(oldBlock.getBlock()) + " -> " + BlockUtil.toName(newBlock.getBlock()));
     }*/
 
 }
