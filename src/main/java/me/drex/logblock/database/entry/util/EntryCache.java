@@ -30,12 +30,21 @@ public class EntryCache {
         HashMap<Integer, CacheEntry<?>> map = cache.get(clazz);
         map = map == null ? new HashMap<>() : map;
         map.put(id, entry);
+        cache.put(clazz, map);
     }
 
     public static HashMap<Integer, CacheEntry<?>> get(Class<? extends CacheEntry<?>> clazz) {
         HashMap<Integer, CacheEntry<?>> map = cache.get(clazz);
         map = map == null ? new HashMap<>() : map;
         return map;
+    }
+
+    public static String asString() {
+        StringBuilder s = new StringBuilder();
+        for (Map.Entry<Class<? extends CacheEntry<?>>, HashMap<Integer, CacheEntry<?>>> entry : cache.entrySet()) {
+            s.append("\n").append(entry.getKey().getSimpleName()).append(": ").append(entry.getValue().toString());
+        }
+        return s.toString();
     }
 
 }

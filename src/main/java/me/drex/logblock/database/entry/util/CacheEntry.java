@@ -40,34 +40,27 @@ public abstract class CacheEntry<K> implements IEntry {
     }
 
     static <L> void load(Class<? extends CacheEntry<L>> clazz, int id, L type, Consumer<CacheEntry<L>> consumer) {
-      //System.out.println("load(Class<? extends CacheEntry<L>> clazz, int id, L type)");
         CompletableFuture.runAsync(() -> {
             try {
                 PreparedStatement statement = BlockLog.getConnection().prepareStatement("SELECT " + Constants.CacheColumn.VALUE + " FROM " + classToTable.get(clazz) + " WHERE id = ?");
                 statement.setInt(1, id);
                 ResultSet resultSet = statement.executeQuery();
-                //System.out.println("Checking rs");
                 if (resultSet.next()) {
-                    //System.out.println("hasNext");
                     L value = null;
                     if (type instanceof String) {
                         value = (L) resultSet.getString(Constants.CacheColumn.VALUE.toString());
                     } else if (type instanceof byte[]) {
                         value = (L) resultSet.getBytes(Constants.CacheColumn.VALUE.toString());
                     }
-                    //System.out.println("Value: " + value);
                     CacheEntry<L> cacheEntry = (CacheEntry<L>) clazz.getDeclaredConstructors()[0].newInstance(value, id);
-                    //System.out.println("CacheEntry: " + cacheEntry);
                     EntryCache.add(clazz, id, cacheEntry);
-                    //System.out.println("CacheEntry2: " + cacheEntry);
                     consumer.accept(cacheEntry);
                 } else {
-                    //System.out.println(" empty for " + id);
+                    throw new RuntimeException("Error loading entry with id " + id);
                 }
             } catch (SQLException | IllegalAccessException | InstantiationException | InvocationTargetException throwables) {
                 throwables.printStackTrace();
             }
-            throw new RuntimeException("Error loading entry with id " + id);
         });
     }
 
@@ -84,15 +77,14 @@ public abstract class CacheEntry<K> implements IEntry {
                 CacheEntry<L> cacheEntry = (CacheEntry<L>) clazz.getConstructors()[0].newInstance(val, 0);
                 if (resultSet.next()) {
                     int id = resultSet.getInt(Constants.CacheColumn.ID.toString());
-                    //System.out.println(clazz.getSimpleName() + " found entry with id " + id);
                     EntryCache.add(clazz, id, cacheEntry);
                     cacheEntry.updateID(id);
                     consumer.accept(cacheEntry);
                 } else {
                     cacheEntry.saveAsync(integer -> {
-                        //System.out.println(clazz.getSimpleName() + " create entry with id " + integer);
-                        cacheEntry.updateID(integer);
-                        consumer.accept(cacheEntry);
+                    cacheEntry.updateID(integer);
+                    EntryCache.add(clazz, integer, cacheEntry);
+                    consumer.accept(cacheEntry);
                     });
                 }
             } catch (SQLException | IllegalAccessException | InstantiationException | InvocationTargetException throwables) {
@@ -102,16 +94,20 @@ public abstract class CacheEntry<K> implements IEntry {
     }
 
     public static <L> void of(Class<? extends CacheEntry<L>> clazz, int id, L type, Consumer<CacheEntry<L>> consumer) {
-      //System.out.println("of(Class<? extends CacheEntry<L>> clazz, int id, L type)");
         CacheEntry<L> entry = (CacheEntry<L>) EntryCache.get(clazz, id);
-      //System.out.println("Entry: " + entry);
-        if (entry != null) consumer.accept(entry);
+        if (entry != null) {
+            consumer.accept(entry);
+            return;
+        }
         load(clazz, id, type, consumer);
     }
 
     public static <L> void of(Class<? extends CacheEntry<L>> clazz, L value, Consumer<CacheEntry<L>> consumer) {
         for (Map.Entry<Integer, CacheEntry<?>> entry : EntryCache.get(clazz).entrySet()) {
-            if (entry.getValue().getValue().equals(value)) consumer.accept((CacheEntry<L>) entry.getValue());
+            if (entry.getValue().getValue().equals(value)) {
+                consumer.accept((CacheEntry<L>) entry.getValue());
+                return;
+            }
         }
         load(clazz, value, consumer);
     }
@@ -125,7 +121,6 @@ public abstract class CacheEntry<K> implements IEntry {
     }
 
     public void updateID(int id) {
-      //System.out.println("New id of " + this.getClass().getSimpleName() + " is " + id);
         this.id = id;
     }
 
@@ -147,7 +142,6 @@ public abstract class CacheEntry<K> implements IEntry {
                 insert.executeUpdate();
                 ResultSet rs = insert.getGeneratedKeys();
                 if (rs.next()) {
-                  //System.out.println("Saving " + this.getClass().getSimpleName() + " Entry with id " + rs.getInt(1));
                     action.accept(rs.getInt(1));
                 }
             } catch (SQLException e) {

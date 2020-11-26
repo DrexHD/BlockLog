@@ -93,16 +93,6 @@ public class RollbackCommand {
                 criterias.add(timeCriteria.get());
                 criterias.add(dimensionCriteria.get());
 
-//                criterias.add(ArgumentUtil.parseUser(context));
-//                criterias.add(ArgumentUtil.parseBlock(context));
-//                criterias.add(ArgumentUtil.parseRadius(context));
-//                criterias.add(ArgumentUtil.parseTime(context));
-
-//                criterias.add(HistoryColumn.DIMENSIONID + " = " + DimensionEntry.of(DimensionEntry.class, WorldUtil.getDimensionNameSpace(context.getSource().getWorld().getDimension())).getID());
-//                DimensionEntry.of(DimensionEntry.class, WorldUtil.getDimensionNameSpace(context.getSource().getWorld().getDimension()), entry -> {
-//                    criterias.add(HistoryColumn.DIMENSIONID + " = " + entry.getID());
-//                    criterias.add(HistoryColumn.UNDONE + " = " + (undo ? "true" : "false"));
-//                });
                 LoadingTimer lt = new LoadingTimer(context.getSource().getPlayer());
                 ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", criterias, "AND"), false);
                 lt.stop();
@@ -120,27 +110,16 @@ public class RollbackCommand {
                     StopWatch setBlockTime = StopWatch.createStarted();
                     context.getSource().getPlayer().networkHandler.sendPacket(new TitleS2CPacket(TitleS2CPacket.Action.ACTIONBAR, new LiteralText(i + " / " + size + " - (Average: " + (undoBlocks.getTime() / i) + "ms / block)").formatted(Formatting.LIGHT_PURPLE), -1, 200, -1));
                     int x = resultSet.getInt(HistoryColumn.XPOS.toString());
-                    //System.out.println("x " + x);
                     int y = resultSet.getInt(HistoryColumn.YPOS.toString());
-                    //System.out.println("y " + y);
                     int z = resultSet.getInt(HistoryColumn.ZPOS.toString());
-                    //System.out.println("z " + z);
                     World world = context.getSource().getWorld();
-//                    World world = WorldUtil.getWorldType(DimensionEntry.of(DimensionEntry.class, WorldUtil.getDimensionNameSpace()).getValue());
-                    //System.out.println("world: " + world);
+                    System.out.println(EntryCache.asString());
                     String blockName = (String) EntryCache.get(BlockEntry.class, resultSet.getInt(undo ? HistoryColumn.BLOCKID.toString() : HistoryColumn.PBLOCKID.toString())).getValue();
-//                    String blockName = BlockEntry.of(BlockEntry.class, resultSet.getInt(undo ? HistoryColumn.BLOCKID.toString() : HistoryColumn.PBLOCKID.toString()), "").getValue(); /*BlockLog.getCache().getBlock(resultSet.getInt(undo ? HistoryColumn.BLOCKID.toString() : HistoryColumn.PBLOCKID.toString()));*/
-                    //System.out.println("Block: " + blockName);
 
                     String blockState = (String) EntryCache.get(BlockStateEntry.class, resultSet.getInt(undo ? HistoryColumn.BLOCKSTATEID.toString() : HistoryColumn.PBLOCKSTATEID.toString())).getValue();
-//                    String blockState = BlockStateEntry.of(BlockStateEntry.class, resultSet.getInt(undo ? HistoryColumn.BLOCKSTATEID.toString() : HistoryColumn.PBLOCKSTATEID.toString()), "").getValue();
-                  //System.out.println("blockState: " + blockState);
                     Block block = Registry.BLOCK.get(new Identifier(blockName));
                     ByteArrayInputStream inputStream = new ByteArrayInputStream((byte[]) EntryCache.get(BlockTagEntry.class, resultSet.getInt(undo ? HistoryColumn.BLOCKTAGID.toString() : HistoryColumn.PBLOCKTAGID.toString())).getValue());
-//                    ByteArrayInputStream inputStream = new ByteArrayInputStream(BlockTagEntry.of(BlockTagEntry.class, resultSet.getInt(undo ? HistoryColumn.BLOCKTAGID.toString() : HistoryColumn.PBLOCKTAGID.toString()), new byte[0]).getValue());
-                  //System.out.println("inputStream: " + inputStream);
                     CompoundTag tag = NbtIo.readCompressed(inputStream);
-                  //System.out.println("tag: " + tag);
                     setBlock(new BlockPos(x, y, z), BlockUtil.fromString(block, blockState), tag, world, resultSet.getInt(HistoryColumn.ID.toString()), !undo);
                     setBlockTime.stop();
                     if (setBlockTime.getTime() > 1000) {
@@ -160,11 +139,11 @@ public class RollbackCommand {
     }
 
     public static void setBlock(BlockPos pos, BlockState blockState, CompoundTag tag, World world, int id, boolean undone) throws SQLException {
-      //System.out.println("Setting block");
+      System.out.println("Setting block");
         StopWatch stopWatch = StopWatch.createStarted();
         world.setBlockState(pos, blockState);
         if (tag.getSize() > 0) {
-          //System.out.println("Placing block entity");
+          System.out.println("Placing block entity");
             BlockEntity blockEntity = BlockEntity.createFromTag(pos, blockState, tag);
             world.addBlockEntity(blockEntity);
         }
