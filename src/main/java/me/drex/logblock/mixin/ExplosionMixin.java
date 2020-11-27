@@ -38,7 +38,7 @@ public class ExplosionMixin {
     private void onExplosion(boolean bl, CallbackInfo ci) {
         this.affectedBlocks.forEach(pos -> {
             BlockState blockState = this.world.getBlockState(pos);
-            new HistoryEntry("-" + EntityUtil.toName(this.entity.getType()), this.world.getDimension(), pos, blockState, Blocks.AIR.getDefaultState(), BlockUtil.getTagAt(world, pos), new CompoundTag(), System.currentTimeMillis(), false).saveAsync();
+            if (blockState.getBlock() != Blocks.AIR) new HistoryEntry("-" + EntityUtil.toName(this.entity.getType()), this.world.getDimension(), pos, blockState, Blocks.AIR.getDefaultState(), BlockUtil.getTagAt(world, pos), new CompoundTag(), System.currentTimeMillis(), false).saveAsync();
         });
     }
 

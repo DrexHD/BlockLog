@@ -9,7 +9,6 @@
     "ExplosionMixin",
     "RconCommandOutputMixin",
     "ServerPlayerInteractionManagerMixin",
-    "ServerWorldMixin",
     "WorldMixin"
   ],
   "injectors": {
