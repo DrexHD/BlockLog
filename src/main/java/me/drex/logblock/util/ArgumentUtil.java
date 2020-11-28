@@ -280,7 +280,7 @@ public class ArgumentUtil {
         }
     }
 
-    public static String formatQuery(String query, ArrayList<String> list, String connector) {
+    public static String formatQuery(String query, List<String> list, String connector) {
         if (list.isEmpty()) {
             return query;
         } else {

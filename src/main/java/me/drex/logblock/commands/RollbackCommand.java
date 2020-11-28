@@ -8,6 +8,7 @@ import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
 import me.drex.logblock.database.entry.*;
 import me.drex.logblock.database.entry.util.EntryCache;
+import me.drex.logblock.database.request.Requests;
 import me.drex.logblock.util.*;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -29,7 +30,6 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,42 +59,16 @@ public class RollbackCommand {
         CompletableFuture.runAsync(() -> {
             try {
                 StopWatch undoBlocks = StopWatch.createStarted();
-                ArrayList<String> criterias = new ArrayList<>();
-                AtomicReference<String> userCriteria = new AtomicReference<>();
-                AtomicReference<String> blockCriteria = new AtomicReference<>();
-                AtomicReference<String> radiusCriteria = new AtomicReference<>();
-                AtomicReference<String> timeCriteria = new AtomicReference<>();
-                AtomicReference<String> dimensionCriteria = new AtomicReference<>();
-                AtomicInteger atomicI = new AtomicInteger();
-                ArgumentUtil.parseUser(context, s -> {
-                    userCriteria.set(s);
-                    atomicI.getAndIncrement();
-                });
-                ArgumentUtil.parseBlock(context, s -> {
-                    blockCriteria.set(s);
-                    atomicI.getAndIncrement();
-                });
-                ArgumentUtil.parseRadius(context, s -> {
-                    radiusCriteria.set(s);
-                    atomicI.getAndIncrement();
-                });
-                ArgumentUtil.parseTime(context, s -> {
-                    timeCriteria.set(s);
-                    atomicI.getAndIncrement();
-                });
-                ArgumentUtil.parseDimension(context, s -> {
-                    dimensionCriteria.set(s);
-                    atomicI.getAndIncrement();
-                });
-                while (atomicI.get() < 5) {};
-                criterias.add(userCriteria.get());
-                criterias.add(blockCriteria.get());
-                criterias.add(radiusCriteria.get());
-                criterias.add(timeCriteria.get());
-                criterias.add(dimensionCriteria.get());
+                Requests<String> r = new Requests<>(5);
+                ArgumentUtil.parseUser(context, r::complete);
+                ArgumentUtil.parseBlock(context, r::complete);
+                ArgumentUtil.parseRadius(context, r::complete);
+                ArgumentUtil.parseTime(context, r::complete);
+                ArgumentUtil.parseDimension(context, r::complete);
+                while (!r.isDone()) {};
 
                 LoadingTimer lt = new LoadingTimer(context.getSource().getPlayer());
-                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", criterias, "AND"), false);
+                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", r.getOutput(), "AND"), false);
                 lt.stop();
                 resultSet.last();
                 int size = resultSet.getRow();
@@ -141,7 +115,7 @@ public class RollbackCommand {
     public static void setBlock(BlockPos pos, BlockState blockState, CompoundTag tag, World world, int id, boolean undone) throws SQLException {
       System.out.println("Setting block");
         StopWatch stopWatch = StopWatch.createStarted();
-        world.setBlockState(pos, blockState);
+        world.setBlockState(pos, blockState, 0,0);
         if (tag.getSize() > 0) {
           System.out.println("Placing block entity");
             BlockEntity blockEntity = BlockEntity.createFromTag(pos, blockState, tag);

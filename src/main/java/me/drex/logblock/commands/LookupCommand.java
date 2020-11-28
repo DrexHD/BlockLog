@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
+import me.drex.logblock.database.request.Requests;
 import me.drex.logblock.util.ArgumentUtil;
 import me.drex.logblock.util.LoadingTimer;
 import me.drex.logblock.util.MessageUtil;
@@ -44,14 +45,16 @@ public class LookupCommand {
         CompletableFuture.runAsync(() -> {
             LoadingTimer lt = null;
             try {
-                ArrayList<String> criterias = new ArrayList<>();
-                criterias.add(ArgumentUtil.parseUser(context));
-                criterias.add(ArgumentUtil.parseBlock(context));
-                criterias.add(ArgumentUtil.parseRadius(context));
-                criterias.add(ArgumentUtil.parseTime(context));
+                Requests<String> r = new Requests<>(5);
+                ArgumentUtil.parseUser(context, r::complete);
+                ArgumentUtil.parseBlock(context, r::complete);
+                ArgumentUtil.parseRadius(context, r::complete);
+                ArgumentUtil.parseTime(context, r::complete);
+                ArgumentUtil.parseDimension(context, r::complete);
+                while (!r.isDone()) {};
                 BlockPos pos = context.getSource().getPlayer().getBlockPos();
                 lt = new LoadingTimer(context.getSource().getPlayer());;
-                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", criterias, "AND"), false, 250);
+                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", r.getOutput(), "AND"), false, 250);
                 lt.stop();
                 MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
             } catch (SQLException | CommandSyntaxException e) {
