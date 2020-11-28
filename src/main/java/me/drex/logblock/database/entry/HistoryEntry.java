@@ -103,8 +103,8 @@ public class HistoryEntry implements IEntry {
                 insert.setBoolean(14, false);
                 Stopwatch sw = Stopwatch.createStarted();
                 do {
-                    if (sw.elapsed(TimeUnit.SECONDS) > 5) {
-                        System.out.println("Unable to save entry only " + i.get() + " / 8 values were set after ~5s");
+                    if (sw.elapsed(TimeUnit.SECONDS) > 10) {
+                        System.out.println("Unable to save entry only " + i.get() + " / 8 values were set after ~10s");
                         return;
                     }
                 } while (i.get() < 8);

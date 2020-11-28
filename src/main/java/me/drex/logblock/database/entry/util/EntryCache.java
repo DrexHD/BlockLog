@@ -10,6 +10,8 @@ public class EntryCache {
 
     public static final HashMap<Class<? extends CacheEntry<?>>, HashMap<Integer, CacheEntry<?>>> cache = new HashMap<>();
 
+    //TODO: Load all cache entries from databse on server start
+
     @Nullable
     public static CacheEntry<?> get(Class<? extends CacheEntry<?>> clazz, int id) {
         HashMap<Integer, ? extends CacheEntry<?>> entries = cache.get(clazz);

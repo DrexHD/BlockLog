@@ -65,7 +65,7 @@ public class RollbackCommand {
                 ArgumentUtil.parseRadius(context, r::complete);
                 ArgumentUtil.parseTime(context, r::complete);
                 ArgumentUtil.parseDimension(context, r::complete);
-                while (!r.isDone()) {};
+                while (!r.isDone()) {}
 
                 LoadingTimer lt = new LoadingTimer(context.getSource().getPlayer());
                 ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", r.getOutput(), "AND"), false);
@@ -87,7 +87,6 @@ public class RollbackCommand {
                     int y = resultSet.getInt(HistoryColumn.YPOS.toString());
                     int z = resultSet.getInt(HistoryColumn.ZPOS.toString());
                     World world = context.getSource().getWorld();
-                    System.out.println(EntryCache.asString());
                     String blockName = (String) EntryCache.get(BlockEntry.class, resultSet.getInt(undo ? HistoryColumn.BLOCKID.toString() : HistoryColumn.PBLOCKID.toString())).getValue();
 
                     String blockState = (String) EntryCache.get(BlockStateEntry.class, resultSet.getInt(undo ? HistoryColumn.BLOCKSTATEID.toString() : HistoryColumn.PBLOCKSTATEID.toString())).getValue();
@@ -113,11 +112,9 @@ public class RollbackCommand {
     }
 
     public static void setBlock(BlockPos pos, BlockState blockState, CompoundTag tag, World world, int id, boolean undone) throws SQLException {
-      System.out.println("Setting block");
         StopWatch stopWatch = StopWatch.createStarted();
-        world.setBlockState(pos, blockState, 0,0);
+        world.setBlockState(pos, blockState);
         if (tag.getSize() > 0) {
-          System.out.println("Placing block entity");
             BlockEntity blockEntity = BlockEntity.createFromTag(pos, blockState, tag);
             world.addBlockEntity(blockEntity);
         }
