@@ -157,7 +157,7 @@ public class ArgumentUtil {
             if (radius < 1) {
                 throw new SimpleCommandExceptionType(new LiteralText("Radius must be larger than 0!")).create();
             }
-            consumer.accept(HistoryColumn.XPOS + " BETWEEN " + (pos.getX() - radius) + " AND " + (pos.getX() + radius) + " AND " + HistoryColumn.YPOS + " BETWEEN " + 0 + " AND " + 256 + " AND " + HistoryColumn.XPOS + " BETWEEN " + (pos.getZ() - radius) + " AND " + (pos.getZ() + radius));
+            consumer.accept("(" + HistoryColumn.XPOS + " BETWEEN " + (pos.getX() - radius) + " AND " + (pos.getX() + radius) + ") AND (" + HistoryColumn.YPOS + " BETWEEN " + 0 + " AND " + 256 + ") AND (" + HistoryColumn.ZPOS + " BETWEEN " + (pos.getZ() - radius) + " AND " + (pos.getZ() + radius) + ")");
         }
     }
 

@@ -11,9 +11,6 @@ public class Requests<K> {
 
     public Requests(int size) {
         this.maxSize = size;
-        for (int i = 0; i < size; i++) {
-            output.add(null);
-        }
     }
 
     public synchronized void complete(K k) {
@@ -22,8 +19,13 @@ public class Requests<K> {
     }
 
     public synchronized void complete(K k, int index) {
-        output.set(index, k);
-        trackedSize++;
+        if (index > output.size() -1) {
+            output.add(null);
+            complete(k, index);
+        } else {
+            output.set(index, k);
+            trackedSize++;
+        }
     }
 
     public boolean isDone() {

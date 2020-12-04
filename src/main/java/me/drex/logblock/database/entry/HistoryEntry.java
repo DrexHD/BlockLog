@@ -104,7 +104,7 @@ public class HistoryEntry implements IEntry {
                 Stopwatch sw = Stopwatch.createStarted();
                 do {
                     if (sw.elapsed(TimeUnit.SECONDS) > 10) {
-                        System.out.println("Unable to save entry only " + i.get() + " / 8 values were set after ~10s");
+                        BlockLog.getLogger().error("Couldn't save block " + blockStateNow.getBlock().getName().asString() + " at " + blockPos.toString() + ", because only " + i.get() + " of 8 values had been set after 10 seconds" );
                         return;
                     }
                 } while (i.get() < 8);

@@ -8,6 +8,10 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
+import me.drex.logblock.database.entry.BlockEntry;
+import me.drex.logblock.database.entry.DimensionEntry;
+import me.drex.logblock.database.entry.util.CacheEntry;
+import me.drex.logblock.database.request.Requests;
 import me.drex.logblock.util.HistoryColumn;
 import me.drex.logblock.util.WorldUtil;
 import net.minecraft.server.command.ServerCommandSource;
@@ -39,7 +43,10 @@ public class TeleportCommand {
                 int x = resultSet.getInt(HistoryColumn.XPOS.toString());
                 int y = resultSet.getInt(HistoryColumn.YPOS.toString());
                 int z = resultSet.getInt(HistoryColumn.ZPOS.toString());
-                ServerWorld world = (ServerWorld) WorldUtil.getWorldType(BlockLog.getCache().getDimension(resultSet.getInt(HistoryColumn.DIMENSIONID.toString())));
+                Requests<CacheEntry<?>> r = new Requests<>(1);
+                DimensionEntry.of(DimensionEntry.class, resultSet.getInt(HistoryColumn.DIMENSIONID.toString()), "", r::complete);
+                while (!r.isDone()) {}
+                ServerWorld world = (ServerWorld) WorldUtil.getWorldType((String) r.getOutput().get(0).getValue());
                 player.teleport(world, x, y, z, player.yaw, player.pitch);
             } else {
                 throw new SimpleCommandExceptionType(new LiteralText("Couldn't find an entry with that id")).create();
