@@ -19,7 +19,7 @@ import java.util.UUID;
 
 public class BlockLog implements DedicatedServerModInitializer {
 
-    private static final Logger LOGGER = LogManager.getLogger("AntiXray");
+    private static final Logger LOGGER = LogManager.getLogger("BlockLog");
     private static BlockLog INSTANCE;
     private static final Path path = new File(System.getProperty("user.dir")).toPath().resolve("config");
     public static MinecraftServer server;
