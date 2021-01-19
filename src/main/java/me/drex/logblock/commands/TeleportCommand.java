@@ -8,7 +8,6 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.DBUtil;
-import me.drex.logblock.database.entry.BlockEntry;
 import me.drex.logblock.database.entry.DimensionEntry;
 import me.drex.logblock.database.entry.util.CacheEntry;
 import me.drex.logblock.database.request.Requests;
@@ -45,7 +44,7 @@ public class TeleportCommand {
                 int z = resultSet.getInt(HistoryColumn.ZPOS.toString());
                 Requests<CacheEntry<?>> r = new Requests<>(1);
                 DimensionEntry.of(DimensionEntry.class, resultSet.getInt(HistoryColumn.DIMENSIONID.toString()), "", r::complete);
-                while (!r.isDone()) {}
+                while (r.isNotDone()) {}
                 ServerWorld world = (ServerWorld) WorldUtil.getWorldType((String) r.getOutput().get(0).getValue());
                 player.teleport(world, x, y, z, player.yaw, player.pitch);
             } else {

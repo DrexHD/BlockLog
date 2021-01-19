@@ -2,6 +2,7 @@ package me.drex.logblock.util;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import me.drex.logblock.BlockLog;
 import me.drex.logblock.database.entry.BlockEntry;
 import me.drex.logblock.database.entry.DimensionEntry;
@@ -78,31 +79,33 @@ public class MessageUtil {
                     BlockEntry.of(BlockEntry.class, resultSet.getInt(placed ? HistoryColumn.BLOCKID.toString() : HistoryColumn.PBLOCKID.toString()), "",entry -> r.complete(entry,1));
                     long time = resultSet.getLong(HistoryColumn.TIME.toString());
                     long dateDiff = System.currentTimeMillis() - time;
-                    while (!r.isDone()) {};
-                    String cause;
-                    List<CacheEntry<?>> output = r.getOutput();
-                    String entity = ((String)output.get(0).getValue());
-                    if (entity.matches(uuidRegex)) {
-                        GameProfile profile = source.getMinecraftServer().getUserCache().getByUuid(UUID.fromString(entity));
-                        cause = profile == null ? entity : profile.getName();
+                    if (r.block(5000)) {
+                        String cause;
+                        List<CacheEntry<?>> output = r.getOutput();
+                        String entity = ((String)output.get(0).getValue());
+                        if (entity.matches(uuidRegex)) {
+                            GameProfile profile = source.getMinecraftServer().getUserCache().getByUuid(UUID.fromString(entity));
+                            cause = profile == null ? entity : profile.getName();
+                        } else {
+                            cause = entity;
+                        }
+                        //TODO: Find a way to figure out which result is which (they are currently sorted by completion time)
+                        MutableText text = new LiteralText(convertmillisecondstoString((dateDiff)) + " ago").formatted(Formatting.GRAY)
+                                .append(new LiteralText(" - ").formatted(Formatting.WHITE))
+                                .append(new LiteralText(cause).formatted(Formatting.AQUA))
+                                .append(new LiteralText(placed ? " placed " : " removed ").formatted(placed ? Formatting.GREEN : Formatting.RED))
+                                .append(new LiteralText(((String)output.get(1).getValue()).split(":")[1])).formatted(Formatting.AQUA)
+                                .append(new LiteralText(" at ").formatted(Formatting.WHITE))
+                                .append(new LiteralText(x + " ")).formatted(Formatting.GRAY)
+                                .append(new LiteralText(y + " ")).formatted(Formatting.GRAY)
+                                .append(new LiteralText(z + " ")).formatted(Formatting.GRAY);
+                        if (undone) text.formatted(Formatting.ITALIC);
+                        text.styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bl teleport " + id)).withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click to teleport!").formatted(Formatting.GREEN))));
+                        source.sendFeedback(text, false);
                     } else {
-                        cause = entity;
+                        throw new SimpleCommandExceptionType(new LiteralText("Couldn't retrieve all entries, aborting")).create();
                     }
-                    //TODO: Find a way to figure out which result is which (they are currently sorted by completion time)
-                    MutableText text = new LiteralText(convertmillisecondstoString((dateDiff)) + " ago").formatted(Formatting.GRAY)
-                            .append(new LiteralText(" - ").formatted(Formatting.WHITE))
-                            .append(new LiteralText(cause).formatted(Formatting.AQUA))
-                            .append(new LiteralText(placed ? " placed " : " removed ").formatted(placed ? Formatting.GREEN : Formatting.RED))
-                            .append(new LiteralText(((String)output.get(1).getValue()).split(":")[1])).formatted(Formatting.AQUA)
-                            .append(new LiteralText(" at ").formatted(Formatting.WHITE))
-                            .append(new LiteralText(x + " ")).formatted(Formatting.GRAY)
-                            .append(new LiteralText(y + " ")).formatted(Formatting.GRAY)
-                            .append(new LiteralText(z + " ")).formatted(Formatting.GRAY);
-                    if (undone) text.formatted(Formatting.ITALIC);
 
-
-                    text.styled(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/bl teleport " + id)).withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new LiteralText("Click to teleport!").formatted(Formatting.GREEN))));
-                    source.sendFeedback(text, false);
                 }
                 results++;
             }

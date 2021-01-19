@@ -28,6 +28,7 @@ public class Manager {
         PageCommand.register(command);
         InfoCommand.register(command);
         TeleportCommand.register(command);
+        ThreadsCommand.register(command);
     }
 
 }

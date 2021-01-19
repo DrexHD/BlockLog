@@ -12,7 +12,7 @@ public class DBUtil {
         return getDataWhere(criteria, asc, -1);
     }
 
-        public static ResultSet getDataWhere(String criteria, boolean asc, int limit) throws SQLException {
+    public static ResultSet getDataWhere(String criteria, boolean asc, int limit) throws SQLException {
         StopWatch stopWatch = StopWatch.createStarted();
         Connection connection = BlockLog.getConnection();
         Statement statement = connection.createStatement();

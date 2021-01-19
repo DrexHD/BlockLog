@@ -51,12 +51,15 @@ public class LookupCommand {
                 ArgumentUtil.parseRadius(context, r::complete);
                 ArgumentUtil.parseTime(context, r::complete);
                 ArgumentUtil.parseDimension(context, r::complete);
-                while (!r.isDone()) {};
-                BlockPos pos = context.getSource().getPlayer().getBlockPos();
-                lt = new LoadingTimer(context.getSource().getPlayer());;
-                ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", r.getOutput(), "AND"), false, 250);
-                lt.stop();
-                MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
+                if (r.block(5000)) {
+                    BlockPos pos = context.getSource().getPlayer().getBlockPos();
+                    lt = new LoadingTimer(context.getSource().getPlayer());;
+                    ResultSet resultSet = DBUtil.getDataWhere(ArgumentUtil.formatQuery("", r.getOutput(), "AND"), false, 250);
+                    lt.stop();
+                    MessageUtil.send(context.getSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
+                } else {
+
+                }
             } catch (SQLException | CommandSyntaxException e) {
                 context.getSource().sendError(new LiteralText(e.getMessage()));
                 if (lt != null) lt.stop();

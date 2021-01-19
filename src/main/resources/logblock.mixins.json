@@ -6,7 +6,6 @@
   "mixins": [
     "BlockItemMixin",
     "CommandManagerMixin",
-    "ExplosionMixin",
     "RconCommandOutputMixin",
     "ServerPlayerInteractionManagerMixin",
     "WorldMixin"

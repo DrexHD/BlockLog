@@ -13,14 +13,14 @@ public class EntryCache {
     //TODO: Load all cache entries from databse on server start
 
     @Nullable
-    public static CacheEntry<?> get(Class<? extends CacheEntry<?>> clazz, int id) {
+    public synchronized static CacheEntry<?> get(Class<? extends CacheEntry<?>> clazz, int id) {
         HashMap<Integer, ? extends CacheEntry<?>> entries = cache.get(clazz);
         entries = entries == null ? new HashMap<>() : entries;
         return entries.get(id);
     }
 
     @Nullable
-    public static <K> CacheEntry<?> get(Class<? extends CacheEntry<K>> clazz, K value) {
+    public synchronized static <K> CacheEntry<?> get(Class<? extends CacheEntry<K>> clazz, K value) {
         HashMap<Integer, ? extends CacheEntry<?>> entries = cache.get(clazz);
         for (Map.Entry<Integer, ? extends CacheEntry<?>> entry : entries.entrySet()) {
             if (entry.getValue().getValue().equals(value)) return entry.getValue();
@@ -28,14 +28,14 @@ public class EntryCache {
         return null;
     }
 
-    public static void add(Class<? extends CacheEntry<?>> clazz, int id, CacheEntry<?> entry) {
+    public synchronized static void add(Class<? extends CacheEntry<?>> clazz, int id, CacheEntry<?> entry) {
         HashMap<Integer, CacheEntry<?>> map = cache.get(clazz);
         map = map == null ? new HashMap<>() : map;
         map.put(id, entry);
         cache.put(clazz, map);
     }
 
-    public static HashMap<Integer, CacheEntry<?>> get(Class<? extends CacheEntry<?>> clazz) {
+    public synchronized static HashMap<Integer, CacheEntry<?>> get(Class<? extends CacheEntry<?>> clazz) {
         HashMap<Integer, CacheEntry<?>> map = cache.get(clazz);
         map = map == null ? new HashMap<>() : map;
         return map;

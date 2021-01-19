@@ -61,7 +61,7 @@ public class ServerPlayerInteractionManagerMixin {
                 try {
                     String criteria = HistoryColumn.XPOS + " = " + pos.getX() + " AND " + HistoryColumn.YPOS + " = " + pos.getY() + " AND " + HistoryColumn.ZPOS + "= " + pos.getZ();
                     ResultSet resultSet = DBUtil.getDataWhere(criteria, false);
-                    MessageUtil.send(this.player.getCommandSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getZ() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
+                    MessageUtil.send(this.player.getCommandSource(), resultSet, new LiteralText("(").formatted(Formatting.GRAY).append(new LiteralText(pos.getX() + " " + pos.getY() + " " + pos.getZ() + ")").formatted(Formatting.GRAY)));
                 } catch (CommandSyntaxException | SQLException e) {
                     e.printStackTrace();
                 }

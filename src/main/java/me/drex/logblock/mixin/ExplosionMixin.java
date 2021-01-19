@@ -36,10 +36,14 @@ public class ExplosionMixin {
 
     @Inject(method = "affectWorld", at = @At(value = "HEAD"))
     private void onExplosion(boolean bl, CallbackInfo ci) {
-        this.affectedBlocks.forEach(pos -> {
-            BlockState blockState = this.world.getBlockState(pos);
-            if (blockState.getBlock() != Blocks.AIR) new HistoryEntry("-" + EntityUtil.toName(this.entity.getType()), this.world.getDimension(), pos, blockState, Blocks.AIR.getDefaultState(), BlockUtil.getTagAt(world, pos), new CompoundTag(), System.currentTimeMillis(), false).saveAsync();
-        });
+        if (this.affectedBlocks != null) {
+            for (BlockPos pos : this.affectedBlocks) {
+                if (pos == null) continue;
+                BlockState blockState = this.world.getBlockState(pos);
+                if (blockState.getBlock() != Blocks.AIR)
+                    new HistoryEntry("-" + EntityUtil.toName(this.entity.getType()), this.world.getDimension(), pos, blockState, Blocks.AIR.getDefaultState(), BlockUtil.getTagAt(world, pos), new CompoundTag(), System.currentTimeMillis(), false).saveAsync();
+            }
+        }
     }
 
 

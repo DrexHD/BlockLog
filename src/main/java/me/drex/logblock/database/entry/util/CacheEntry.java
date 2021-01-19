@@ -12,6 +12,7 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
 
 public abstract class CacheEntry<K> implements IEntry {
@@ -31,6 +32,8 @@ public abstract class CacheEntry<K> implements IEntry {
         put(EntityEntry.class, Constants.Table.ENTITIES.toString());
     }};
 
+    static ConcurrentLinkedDeque<Object> currentlyCaching = new ConcurrentLinkedDeque<>();
+
     private K value;
     private int id;
 
@@ -39,8 +42,9 @@ public abstract class CacheEntry<K> implements IEntry {
         this.id = id;
     }
 
-    static <L> void load(Class<? extends CacheEntry<L>> clazz, int id, L type, Consumer<CacheEntry<L>> consumer) {
+    static synchronized <L> void load(Class<? extends CacheEntry<L>> clazz, int id, L type, Consumer<CacheEntry<L>> consumer) {
         CompletableFuture.runAsync(() -> {
+            Thread.currentThread().setName("BlockLog$LoadByID(" + classToTable.get(clazz) + " / " + id + ")");
             try {
                 PreparedStatement statement = BlockLog.getConnection().prepareStatement("SELECT " + Constants.CacheColumn.VALUE + " FROM " + classToTable.get(clazz) + " WHERE id = ?");
                 statement.setInt(1, id);
@@ -60,12 +64,14 @@ public abstract class CacheEntry<K> implements IEntry {
                 }
             } catch (SQLException | IllegalAccessException | InstantiationException | InvocationTargetException throwables) {
                 throwables.printStackTrace();
+                Thread.currentThread().interrupt();
             }
         });
     }
 
-    static <L> void load(Class<? extends CacheEntry<L>> clazz, L val, Consumer<CacheEntry<L>> consumer) {
+    static synchronized <L> void load(Class<? extends CacheEntry<L>> clazz, L val, Consumer<CacheEntry<L>> consumer) {
         CompletableFuture.runAsync(() -> {
+            Thread.currentThread().setName("BlockLog$LoadByValue(" + classToTable.get(clazz) + " / " + val + ")");
             try {
                 PreparedStatement statement = BlockLog.getConnection().prepareStatement("SELECT " + Constants.CacheColumn.ID + " FROM " + classToTable.get(clazz) + " WHERE " + Constants.CacheColumn.VALUE + " = ?");
                 if (val instanceof String) {
@@ -78,13 +84,15 @@ public abstract class CacheEntry<K> implements IEntry {
                 if (resultSet.next()) {
                     int id = resultSet.getInt(Constants.CacheColumn.ID.toString());
                     EntryCache.add(clazz, id, cacheEntry);
+                    currentlyCaching.remove(val);
                     cacheEntry.updateID(id);
                     consumer.accept(cacheEntry);
                 } else {
                     cacheEntry.saveAsync(integer -> {
-                    cacheEntry.updateID(integer);
-                    EntryCache.add(clazz, integer, cacheEntry);
-                    consumer.accept(cacheEntry);
+                        cacheEntry.updateID(integer);
+                        EntryCache.add(clazz, integer, cacheEntry);
+                        currentlyCaching.remove(val);
+                        consumer.accept(cacheEntry);
                     });
                 }
             } catch (SQLException | IllegalAccessException | InstantiationException | InvocationTargetException throwables) {
@@ -93,7 +101,7 @@ public abstract class CacheEntry<K> implements IEntry {
         });
     }
 
-    public static <L> void of(Class<? extends CacheEntry<L>> clazz, int id, L type, Consumer<CacheEntry<L>> consumer) {
+    public static synchronized <L> void of(Class<? extends CacheEntry<L>> clazz, int id, L type, Consumer<CacheEntry<L>> consumer) {
         CacheEntry<L> entry = (CacheEntry<L>) EntryCache.get(clazz, id);
         if (entry != null) {
             consumer.accept(entry);
@@ -102,14 +110,25 @@ public abstract class CacheEntry<K> implements IEntry {
         load(clazz, id, type, consumer);
     }
 
-    public static <L> void of(Class<? extends CacheEntry<L>> clazz, L value, Consumer<CacheEntry<L>> consumer) {
+    public static synchronized <L> void of(Class<? extends CacheEntry<L>> clazz, L value, Consumer<CacheEntry<L>> consumer) {
         for (Map.Entry<Integer, CacheEntry<?>> entry : EntryCache.get(clazz).entrySet()) {
             if (entry.getValue().getValue().equals(value)) {
                 consumer.accept((CacheEntry<L>) entry.getValue());
                 return;
             }
         }
-        load(clazz, value, consumer);
+        if (currentlyCaching.contains(value)) {
+            try {
+                Thread.currentThread().wait(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Thread.currentThread().interrupt();
+            }
+            of(clazz, value, consumer);
+        } else {
+            currentlyCaching.add(value);
+            load(clazz, value, consumer);
+        }
     }
 
     public K getValue() {
@@ -129,7 +148,7 @@ public abstract class CacheEntry<K> implements IEntry {
     }
 
     @Override
-    public void saveAsync(Consumer<Integer> action) {
+    public synchronized void saveAsync(Consumer<Integer> action) {
         CompletableFuture.runAsync(() -> {
             try {
                 PreparedStatement insert = BlockLog.getConnection().prepareStatement("INSERT INTO " + getTable() + " (" + Constants.CacheColumn.VALUE + ") VALUES (?);", Statement.RETURN_GENERATED_KEYS);

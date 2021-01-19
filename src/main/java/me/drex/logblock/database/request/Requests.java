@@ -1,13 +1,18 @@
 package me.drex.logblock.database.request;
 
-import java.util.ArrayList;
+import me.drex.logblock.BlockLog;
+
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Requests<K> {
 
     private int maxSize;
     private int trackedSize = 0;
-    private List<K> output = new ArrayList<>();
+    private long start = 0;
+    private List<K> output = new CopyOnWriteArrayList<>();
 
     public Requests(int size) {
         this.maxSize = size;
@@ -28,12 +33,23 @@ public class Requests<K> {
         }
     }
 
-    public boolean isDone() {
-        return trackedSize == this.maxSize;
+    public boolean isNotDone() {
+        return trackedSize != this.maxSize;
     }
 
     public List<K> getOutput() {
         return this.output;
+    }
+
+    public boolean block(int timeout) {
+        start = new Date().getTime();
+        while (isNotDone()) {
+            if (start + timeout < new Date().getTime()) {
+                BlockLog.getLogger().warn("Request only had " + this.trackedSize + " / " + this.maxSize + " requests done after " + timeout + "ms! " + Arrays.toString(this.getOutput().toArray()));
+                return false;
+            }
+        }
+        return true;
     }
 
 }

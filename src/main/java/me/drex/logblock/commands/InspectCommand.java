@@ -44,6 +44,7 @@ public class InspectCommand {
 
     private static int lookup(CommandContext<ServerCommandSource> context) {
         CompletableFuture.runAsync(() -> {
+            Thread.currentThread().setName("BlockLog$Lookup");
             try {
                 BlockPos pos = BlockPosArgumentType.getBlockPos(context, "blockpos");
                 String criteria = HistoryColumn.XPOS + " = " + pos.getX() + " AND " + HistoryColumn.YPOS + " = " + pos.getY() + " AND " + HistoryColumn.ZPOS + " = " + pos.getZ();

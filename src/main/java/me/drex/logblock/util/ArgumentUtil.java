@@ -129,6 +129,8 @@ public class ArgumentUtil {
         if (input.equals("-everyone")) {
             consumer.accept("");
         } else {
+            GameProfile profile = BlockLog.server.getUserCache().findByName(input);
+            if (profile != null) input = profile.getId().toString();
             EntityEntry.of(EntityEntry.class, input, entry -> consumer.accept(HistoryColumn.ENTITYID + " = " + entry.getID()));
         }
     }
