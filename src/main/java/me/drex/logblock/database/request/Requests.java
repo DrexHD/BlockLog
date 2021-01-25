@@ -3,16 +3,16 @@ package me.drex.logblock.database.request;
 import me.drex.logblock.BlockLog;
 
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Requests<K> {
 
-    private int maxSize;
+    private final int maxSize;
     private int trackedSize = 0;
     private long start = 0;
-    private List<K> output = new CopyOnWriteArrayList<>();
+    private boolean locked = false;
+    private final List<K> output = new CopyOnWriteArrayList<>();
 
     public Requests(int size) {
         this.maxSize = size;
@@ -24,6 +24,7 @@ public class Requests<K> {
     }
 
     public synchronized void complete(K k, int index) {
+        locked = true;
         if (index > output.size() -1) {
             output.add(null);
             complete(k, index);
@@ -31,9 +32,10 @@ public class Requests<K> {
             output.set(index, k);
             trackedSize++;
         }
+        locked = false;
     }
 
-    public boolean isNotDone() {
+    public synchronized boolean isNotDone() {
         return trackedSize != this.maxSize;
     }
 
@@ -42,9 +44,11 @@ public class Requests<K> {
     }
 
     public boolean block(int timeout) {
-        start = new Date().getTime();
+        if (locked) return block(timeout);
+        start = System.currentTimeMillis();
         while (isNotDone()) {
-            if (start + timeout < new Date().getTime()) {
+            if (start + timeout < System.currentTimeMillis() ||
+                    Thread.interrupted()) {
                 BlockLog.getLogger().warn("Request only had " + this.trackedSize + " / " + this.maxSize + " requests done after " + timeout + "ms! " + Arrays.toString(this.getOutput().toArray()));
                 return false;
             }

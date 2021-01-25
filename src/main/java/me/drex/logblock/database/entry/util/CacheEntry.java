@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -71,7 +72,7 @@ public abstract class CacheEntry<K> implements IEntry {
 
     static synchronized <L> void load(Class<? extends CacheEntry<L>> clazz, L val, Consumer<CacheEntry<L>> consumer) {
         CompletableFuture.runAsync(() -> {
-            Thread.currentThread().setName("BlockLog$LoadByValue(" + classToTable.get(clazz) + " / " + val + ")");
+            Thread.currentThread().setName("BlockLog$LoadByValue(" + classToTable.get(clazz) + " / " + (val instanceof byte[] ? Arrays.toString((byte[]) val) : val) + ")");
             try {
                 PreparedStatement statement = BlockLog.getConnection().prepareStatement("SELECT " + Constants.CacheColumn.ID + " FROM " + classToTable.get(clazz) + " WHERE " + Constants.CacheColumn.VALUE + " = ?");
                 if (val instanceof String) {
@@ -112,7 +113,7 @@ public abstract class CacheEntry<K> implements IEntry {
 
     public static synchronized <L> void of(Class<? extends CacheEntry<L>> clazz, L value, Consumer<CacheEntry<L>> consumer) {
         for (Map.Entry<Integer, CacheEntry<?>> entry : EntryCache.get(clazz).entrySet()) {
-            if (entry.getValue().getValue().equals(value)) {
+            if (entry.getValue().getValue().equals(value) || (entry.getValue().getValue() instanceof byte[] && value instanceof byte[] && Arrays.equals((byte[]) entry.getValue().getValue(), (byte[]) value))) {
                 consumer.accept((CacheEntry<L>) entry.getValue());
                 return;
             }
