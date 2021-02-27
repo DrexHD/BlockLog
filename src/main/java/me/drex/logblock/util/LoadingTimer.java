@@ -1,21 +1,19 @@
 package me.drex.logblock.util;
 
+import me.drex.logblock.BlockLog;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.Formatting;
-import org.apache.commons.lang3.time.StopWatch;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 
 public class LoadingTimer {
 
     private static final List<Character> characters = Arrays.asList('|', '/', '-', '\\', '|', '/', '-', '\\');
-    private final StopWatch stopWatch = StopWatch.createStarted();
-    private long cachedTime = 0;
     private final ServerPlayerEntity player;
-    private Thread t;
+    private final int wait = 50;
     private boolean stop = false;
 
     public LoadingTimer(ServerPlayerEntity player) {
@@ -24,22 +22,24 @@ public class LoadingTimer {
     }
 
     public void start() {
-        t = new Thread(() -> {
+        CompletableFuture.runAsync(() -> {
             int i = 0;
-            while(!stop) {
-                if (cachedTime / 10 < stopWatch.getTime() / 10) {
-                    this.player.sendMessage(new LiteralText("Loading data " + characters.get(i / 50 % characters.size())).formatted(Formatting.YELLOW)
-                            /*.append(new LiteralText(" (" + stopWatch.getTime(TimeUnit.MILLISECONDS) + "ms)").formatted(Formatting.DARK_GRAY))*/, true);
-                    i++;
-                    cachedTime = stopWatch.getTime();
+            while (!stop) {
+                if (!BlockLog.server.getPlayerManager().getPlayerList().contains(this.player)) break;
+                this.player.sendMessage(new LiteralText("Loading data " + characters.get(i % characters.size())).formatted(Formatting.GRAY), true);
+                i++;
+                try {
+                    Thread.sleep(wait);
+                } catch (InterruptedException e) {
+                    break;
                 }
             }
         });
-        t.start();
     }
 
     public void stop() {
         stop = true;
+        this.player.sendMessage(new LiteralText("Loading data " + characters.get(i % characters.size())).formatted(Formatting.GRAY), true);
     }
 
 }

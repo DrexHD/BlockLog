@@ -18,13 +18,6 @@ import java.util.function.Consumer;
 
 public abstract class CacheEntry<K> implements IEntry {
 
-/*    public static Map<Class<? extends CacheEntry<?>>, String> classToTable = Map.ofEntries(
-            Map.entry(BlockStateEntry.class, "blockstate"),
-            Map.entry(BlockTagEntry.class, "blocktag"),
-            Map.entry(DimensionEntry.class, "dimension"),
-            Map.entry(EntityEntry.class, "entity")
-    );*/
-
     static Map<Class<? extends CacheEntry<?>>, String> classToTable = new HashMap<Class<? extends CacheEntry<?>>, String>() {{
         put(BlockEntry.class, Constants.Table.BLOCKS.toString());
         put(BlockStateEntry.class, Constants.Table.BLOCKSTATES.toString());
